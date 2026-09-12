@@ -215,16 +215,16 @@ export function GeneratePasswordForm() {
 
   return (
     <div className="w-full">
-      {/* Responsive 2-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* Responsive 2-Column Grid with Equal Height Partition */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* ========================================================================= */}
-        {/* LEFT COLUMN: Unified Passwords Section (Includes on top, then passwords)  */}
+        {/* LEFT COLUMN: Unified Passwords Section (Capped to prevent expanding settings) */}
         {/* ========================================================================= */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          <Card>
-            <CardContent className="space-y-5">
+        <div className="lg:col-span-7 flex flex-col h-full max-h-[690px] overflow-hidden">
+          <Card className="flex flex-col h-full max-h-[690px] overflow-hidden">
+            <CardContent className="space-y-4 flex flex-col flex-1 p-5 sm:p-6 min-h-0 overflow-hidden">
               {/* Header with Title and Global Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border/40">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border/40 shrink-0">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <h2 className="text-sm font-semibold tracking-tight">
@@ -333,22 +333,24 @@ export function GeneratePasswordForm() {
               </div>
 
               {/* 1. Include & Strength Section (At the TOP of the password list) */}
-              <StrengthMeter password={primaryPassword} />
+              <div className="shrink-0">
+                <StrengthMeter password={primaryPassword} />
+              </div>
 
               {/* Generation Error Alert if any */}
               {generationError && (
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium">
+                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium shrink-0">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{generationError}</span>
                 </div>
               )}
 
-              {/* 2. Password List Section (Directly under Include & Strength section) */}
+              {/* 2. Password List Section (Capped within fixed height, internal scroll for long passwords) */}
               {passwords.length <= 1 ? (
                 /* Single Password View */
-                <div className="relative group pt-1">
-                  <div className="flex items-center justify-between gap-3 min-h-[56px] px-4 py-3 bg-muted/50 dark:bg-muted/30 rounded-xl border border-border/70 transition-colors focus-within:border-primary">
-                    <div className="font-mono text-base sm:text-xl font-bold tracking-wider break-all select-all flex-1 py-1">
+                <div className="relative group pt-1 flex-1 flex flex-col justify-center min-h-0">
+                  <div className="flex items-center justify-between gap-3 min-h-[56px] max-h-[130px] px-4 py-3 bg-muted/50 dark:bg-muted/30 rounded-xl border border-border/70 transition-colors focus-within:border-primary overflow-hidden">
+                    <div className="font-mono text-base sm:text-lg font-bold tracking-wider break-all select-all flex-1 py-1 max-h-[110px] overflow-y-auto">
                       {primaryPassword ? (
                         renderSyntaxPassword(primaryPassword)
                       ) : (
@@ -366,9 +368,9 @@ export function GeneratePasswordForm() {
                   </div>
                 </div>
               ) : (
-                /* Batch Passwords List View */
-                <div className="space-y-2 pt-1">
-                  <ScrollArea className="h-80 rounded-xl border bg-muted/20">
+                /* Batch Passwords List View (Internal scrolling, height strictly bounded) */
+                <div className="flex-1 flex flex-col min-h-0 pt-1 overflow-hidden">
+                  <ScrollArea className="flex-1 min-h-[340px] max-h-[415px] h-full rounded-xl border bg-muted/20">
                     <div className="p-2 space-y-1">
                       {previewPasswords.map((pwd, idx) => {
                         const isCopied = copiedItemIndex === idx;
@@ -427,12 +429,12 @@ export function GeneratePasswordForm() {
         </div>
 
         {/* ========================================================================= */}
-        {/* RIGHT COLUMN: Settings Section (Unified Card matching left column layout)  */}
+        {/* RIGHT COLUMN: Settings Section (Height strictly fixed and capped at 690px)  */}
         {/* ========================================================================= */}
-        <div className="lg:col-span-5 flex flex-col">
-          <form onSubmit={form.handleSubmit(runGenerate)}>
-            <Card>
-              <CardContent className="space-y-5">
+        <div className="lg:col-span-5 flex flex-col h-full max-h-[690px]">
+          <form onSubmit={form.handleSubmit(runGenerate)} className="flex flex-col h-full max-h-[690px]">
+            <Card className="flex flex-col h-full max-h-[690px] overflow-hidden">
+              <CardContent className="space-y-4 flex flex-col flex-1 p-5 sm:p-6 min-h-0">
                 {/* Settings Header matching Left Card Header */}
                 <div className="flex items-center justify-between pb-2 border-b border-border/40">
                   <div className="flex items-center gap-2">
