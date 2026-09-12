@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { generateSecurePassword } from "@/lib/utils";
 
 export type CopiedState = number | "all" | null;
@@ -13,6 +13,7 @@ export function usePasswordGenerator() {
   const [passwords, setPasswords] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [copiedItemIndex, setCopiedItemIndex] = useState<CopiedState>(null);
+  const lastCycleIndexRef = useRef<number>(-1);
 
   // Auto-reset copied state indicator after 2 seconds
   useEffect(() => {
@@ -34,7 +35,7 @@ export function usePasswordGenerator() {
       );
 
       // Cap quantity to prevent blocking UI thread
-      const safeQuantity = Math.min(Math.max(1, quantity || 1), 1000);
+      const safeQuantity = Math.min(Math.max(1, quantity || 1), 5000);
       const generatedList: string[] = [];
 
       for (let i = 0; i < safeQuantity; i++) {
@@ -52,6 +53,7 @@ export function usePasswordGenerator() {
 
       setPasswords(generatedList);
       setCopiedItemIndex(null);
+      lastCycleIndexRef.current = -1;
     },
     [],
   );
@@ -63,6 +65,7 @@ export function usePasswordGenerator() {
       try {
         await navigator.clipboard.writeText(passwords[index]);
         setCopiedItemIndex(index);
+        lastCycleIndexRef.current = index;
       } catch (err) {
         console.error("Clipboard copy failed:", err);
       }
@@ -70,17 +73,20 @@ export function usePasswordGenerator() {
     [passwords],
   );
 
-  // Cycle through and copy the next password
+  // Cycle through and copy the next password (wraps around to 0 when reaching the end)
   const copyNextPassword = useCallback(async () => {
     if (!passwords.length) return;
 
-    const nextIndex =
-      typeof copiedItemIndex === "number"
-        ? (copiedItemIndex + 1) % passwords.length
-        : 0;
+    const nextIndex = (lastCycleIndexRef.current + 1) % passwords.length;
+    lastCycleIndexRef.current = nextIndex;
 
-    await copySinglePassword(nextIndex);
-  }, [passwords, copiedItemIndex, copySinglePassword]);
+    try {
+      await navigator.clipboard.writeText(passwords[nextIndex]);
+      setCopiedItemIndex(nextIndex);
+    } catch (err) {
+      console.error("Clipboard copy failed:", err);
+    }
+  }, [passwords]);
 
   // Copy all passwords (newline separated)
   const copyAllPasswords = useCallback(async () => {
