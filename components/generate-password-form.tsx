@@ -4,281 +4,609 @@ import { useEffect, useState, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { cn } from "@/lib/utils";
+import { cn, getCharType } from "@/lib/utils";
 import { usePasswordGenerator } from "@/hooks/use-password-generator";
 import { useFormPersistence } from "@/hooks/use-form-persistence";
+import { StrengthMeter } from "@/components/strength-meter";
 
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldLabel,
-  FieldError,
-  FieldDescription,
-  FieldGroup,
-  FieldSet,
-  FieldLegend,
-} from "@/components/ui/field";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "./ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Copy,
+  Check,
+  RotateCw,
+  Download,
+  Sliders,
+  Sparkles,
+  AlertCircle,
+  Layers,
+  CheckCheck,
+  Settings2,
+} from "lucide-react";
 
 const formSchema = z.object({
-  length: z.coerce
-    .number({ error: "Password length must be a number" })
-    .min(4, "Password length must be at least 4 characters")
-    .max(32, "Password length cannot exceed 32 characters"),
+  length: z
+    .number()
+    .min(4, "Length must be at least 4 characters")
+    .max(64, "Length cannot exceed 64 characters"),
 
-  quantity: z.coerce
-    .number({ error: "Quantity must be a number" })
-    .min(1, "You must generate at least 1 password")
-    .max(5000, "You can generate up to 5000 passwords at a time"),
+  quantity: z
+    .number()
+    .min(1, "Quantity must be at least 1")
+    .max(100, "Maximum batch size is 100"),
+
   options: z.array(z.string()).refine(
     (value) => {
       const required = ["uppercase", "lowercase", "number", "symbol"];
       return value.some((id) => required.includes(id));
     },
     {
-      error: "Select at least one character type",
+      message: "Please select at least one character type",
     },
   ),
 });
 
-const optionItems = [
-  { id: "uppercase", title: "Include Uppercase Letters (A–Z)" },
-  { id: "lowercase", title: "Include Lowercase Letters (a–z)" },
-  { id: "number", title: "Include Numbers (0–9)" },
-  { id: "symbol", title: "Include Symbols (@, #, etc.)" },
-  { id: "beginWithLetter", title: "Ensure Password Starts With a Letter" },
-  { id: "excludeDuplicate", title: "Disallow Duplicate Characters" },
+type FormValues = z.infer<typeof formSchema>;
+
+interface OptionItem {
+  id: string;
+  title: string;
+  description: string;
+  isCharPool?: boolean;
+}
+
+const charPoolItems: OptionItem[] = [
   {
-    id: "excludeSimilar",
-    title: "Exclude Similar-Looking Characters (i, I, l, 1, o, O, 0)",
+    id: "uppercase",
+    title: "Uppercase Letters",
+    description: "A, B, C, ... Z",
+    isCharPool: true,
   },
-  { id: "save", title: "Save Setting" },
+  {
+    id: "lowercase",
+    title: "Lowercase Letters",
+    description: "a, b, c, ... z",
+    isCharPool: true,
+  },
+  {
+    id: "number",
+    title: "Numbers",
+    description: "0, 1, 2, ... 9",
+    isCharPool: true,
+  },
+  {
+    id: "symbol",
+    title: "Special Symbols",
+    description: "@#",
+    isCharPool: true,
+  },
 ];
 
+const preferenceItems: OptionItem[] = [
+  {
+    id: "beginWithLetter",
+    title: "Start with a Letter",
+    description: "First char will be a letter",
+  },
+  {
+    id: "excludeDuplicate",
+    title: "Disallow Duplicates",
+    description: "No repeating characters",
+  },
+  {
+    id: "excludeSimilar",
+    title: "Avoid Ambiguous",
+    description: "Excludes i, I, l, 1, o, O, 0...",
+  },
+  {
+    id: "save",
+    title: "Save Preferences",
+    description: "Remember on this browser",
+  },
+];
+
+const QUANTITY_PRESETS = [1, 5, 10, 25, 50];
+
 export function GeneratePasswordForm() {
-  const [formReady, setFormReady] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+
   const {
     passwords,
+    generationError,
     copiedItemIndex,
     generatePasswords,
-    copyNextPassword,
+    copySinglePassword,
     copyAllPasswords,
+    downloadAsTextFile,
   } = usePasswordGenerator();
 
-  const form = useForm({
-    resolver: zodResolver(formSchema as any),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      length: 8,
+      length: 16,
       quantity: 1,
       options: [
         "uppercase",
         "lowercase",
         "number",
         "symbol",
-        "beginWithLetter",
-        "excludeDuplicate",
         "excludeSimilar",
+        "save",
       ],
     },
   });
 
-  // Load saved settings if available
-  useFormPersistence(form, formSchema as any, () => setFormReady(true));
+  // Load saved settings if present in localStorage
+  useFormPersistence(form, formSchema);
 
-  // Helper for generate
-  const runGenerateFromForm = useCallback(() => {
+  // Trigger password generation based on form values
+  const runGenerate = useCallback(() => {
     const { length, quantity, options } = form.getValues();
+    const generatorOptions = options.filter((opt) => opt !== "save");
+
     generatePasswords({
-      length,
-      quantity,
-      options: options.filter((opt: string) => opt !== "saveSetting"),
+      length: Number(length) || 16,
+      quantity: Number(quantity) || 1,
+      options: generatorOptions,
     });
   }, [form, generatePasswords]);
 
-  // Generate password automatically once the form is ready
+  // Initial generation on component load
   useEffect(() => {
-    if (!formReady) return;
-    runGenerateFromForm();
-  }, [formReady, runGenerateFromForm]);
+    runGenerate();
+  }, [runGenerate]);
 
-  // Standard submit handler
-  const handleGenerate = () => {
-    runGenerateFromForm();
+  const handleManualRegenerate = () => {
+    setIsRotating(true);
+    runGenerate();
+    setTimeout(() => setIsRotating(false), 400);
   };
 
-  if (!formReady) return null;
+  const primaryPassword = passwords[0] || "";
+  const currentLength = form.watch("length");
+  const currentQuantity = form.watch("quantity");
 
   return (
-    <div className="flex flex-col flex-1 h-full gap-6">
-      <h1 className="text-2xl font-semibold text-center">Password Generator</h1>
+    <div className="w-full">
+      {/* Responsive 2-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ========================================================================= */}
+        {/* LEFT COLUMN: All Passwords Section (Primary Showcase + Batch Passwords)    */}
+        {/* ========================================================================= */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          {/* Primary Password Showcase Card */}
+          <Card>
+            <CardContent className="space-y-5">
+              {/* Top info badge */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Generated Password
+                </span>
+                <span className="text-xs font-mono text-muted-foreground">
+                  Length: {primaryPassword.length}
+                </span>
+              </div>
 
-      <form onSubmit={form.handleSubmit(handleGenerate)}>
-        <FieldSet>
-          <FieldGroup className="grid md:grid-cols-2">
-            <Controller
-              name="length"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel
-                    htmlFor="length"
-                    aria-invalid={fieldState.invalid}
-                  >
-                    Password Length
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id="length"
-                    aria-invalid={fieldState.invalid}
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid ? (
-                    <FieldError errors={[fieldState.error]} />
-                  ) : (
-                    <FieldDescription>
-                      Password length must be between 4 and 32
-                    </FieldDescription>
-                  )}
-                </Field>
+              {/* Large Password Display */}
+              <div className="relative group">
+                <div className="flex items-center justify-between gap-3 min-h-[60px] sm:min-h-[72px] px-4 py-3 bg-muted/60 dark:bg-muted/30 rounded-xl border border-border/80 transition-colors focus-within:border-primary">
+                  <div className="font-mono text-base sm:text-xl md:text-2xl font-bold tracking-wider break-all select-all flex-1 py-1">
+                    {primaryPassword ? (
+                      Array.from(primaryPassword).map((char, index) => {
+                        const type = getCharType(char);
+                        let colorClass = "text-foreground";
+                        if (type === "digit")
+                          colorClass = "text-blue-600 dark:text-blue-400";
+                        else if (type === "symbol")
+                          colorClass = "text-amber-600 dark:text-amber-400 font-extrabold";
+                        else if (type === "upper")
+                          colorClass = "text-foreground";
+                        else if (type === "lower")
+                          colorClass = "text-muted-foreground";
+
+                        return (
+                          <span key={index} className={colorClass}>
+                            {char}
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span className="text-muted-foreground text-sm font-normal">
+                        Adjust options to generate password...
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Quick Action Buttons */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleManualRegenerate}
+                      title="Generate new password"
+                      className="rounded-lg h-10 w-10 cursor-pointer hover:bg-background shadow-xs transition-transform active:scale-95"
+                    >
+                      <RotateCw
+                        className={cn(
+                          "h-4 w-4 text-foreground transition-transform duration-300",
+                          isRotating && "rotate-180",
+                        )}
+                      />
+                    </Button>
+
+                    <Button
+                      type="button"
+                      size="default"
+                      onClick={() => copySinglePassword(0)}
+                      disabled={!primaryPassword}
+                      className="h-10 px-4 gap-2 rounded-lg cursor-pointer shadow-xs transition-all active:scale-95"
+                    >
+                      {copiedItemIndex === 0 ? (
+                        <>
+                          <Check className="h-4 w-4 text-primary-foreground animate-in zoom-in-50" />
+                          <span className="font-semibold">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" />
+                          <span className="font-semibold">Copy</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Entropy & Strength Meter */}
+              <StrengthMeter password={primaryPassword} />
+
+              {/* Generation Error Alert */}
+              {generationError && (
+                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{generationError}</span>
+                </div>
               )}
-            />
-            <Controller
-              name="quantity"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel
-                    htmlFor="quantity"
-                    aria-invalid={fieldState.invalid}
-                  >
-                    Quantity
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id="quantity"
-                    aria-invalid={fieldState.invalid}
-                    autoComplete="off"
+            </CardContent>
+          </Card>
+
+          {/* Batch Passwords Section (Rendered in left column when quantity > 1) */}
+          {passwords.length > 1 && (
+            <Card>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">
+                      Batch Passwords ({passwords.length})
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Click any row to copy, or export the whole batch
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={copyAllPasswords}
+                      className="gap-1.5 text-xs cursor-pointer"
+                    >
+                      {copiedItemIndex === "all" ? (
+                        <>
+                          <CheckCheck className="h-3.5 w-3.5 text-emerald-500" />
+                          Copied All!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          Copy All
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={downloadAsTextFile}
+                      className="gap-1.5 text-xs cursor-pointer"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download .txt
+                    </Button>
+                  </div>
+                </div>
+
+                <ScrollArea className="h-72 sm:h-80 rounded-lg border bg-muted/20">
+                  <div className="p-2 space-y-1">
+                    {passwords.map((pwd, idx) => {
+                      const isCopied = copiedItemIndex === idx;
+
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => copySinglePassword(idx)}
+                          className={cn(
+                            "group flex items-center justify-between p-2 rounded-md font-mono text-xs sm:text-sm transition-colors cursor-pointer",
+                            isCopied
+                              ? "bg-primary/10 text-primary font-bold"
+                              : "hover:bg-muted/80 text-foreground",
+                          )}
+                        >
+                          <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
+                            <span className="text-xs text-muted-foreground font-sans w-6 text-right">
+                              #{idx + 1}
+                            </span>
+                            <span className="truncate">{pwd}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {isCopied ? (
+                              <span className="text-[11px] font-sans text-primary flex items-center gap-1">
+                                <Check className="h-3 w-3" /> Copied
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-sans text-muted-foreground flex items-center gap-1">
+                                <Copy className="h-3 w-3" /> Copy
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* ========================================================================= */}
+        {/* RIGHT COLUMN: Settings Section                                            */}
+        {/* ========================================================================= */}
+        <div className="lg:col-span-5 flex flex-col gap-5">
+          <form onSubmit={form.handleSubmit(runGenerate)} className="space-y-5">
+            {/* Settings Header */}
+            <div className="flex items-center gap-2 pb-1 border-b border-border/40">
+              <Settings2 className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold tracking-tight">
+                Settings & Customization
+              </h2>
+            </div>
+
+            {/* Password Length Controller */}
+            <Card>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="h-4 w-4 text-primary" />
+                    <label htmlFor="length-input" className="text-sm font-semibold">
+                      Length
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      id="length-input"
+                      type="number"
+                      min={4}
+                      max={64}
+                      value={currentLength}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        form.setValue("length", val, { shouldValidate: true });
+                        runGenerate();
+                      }}
+                      className="w-16 h-8 text-center font-mono font-bold text-sm"
+                    />
+                    <span className="text-xs text-muted-foreground">chars</span>
+                  </div>
+                </div>
+
+                {/* Range Slider */}
+                <div>
+                  <input
+                    type="range"
+                    min={4}
+                    max={64}
+                    value={currentLength}
+                    onChange={(e) => {
+                      form.setValue("length", Number(e.target.value), {
+                        shouldValidate: true,
+                      });
+                      runGenerate();
+                    }}
+                    className="w-full accent-primary h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                    aria-label="Password length slider"
                   />
-                  {fieldState.invalid ? (
-                    <FieldError errors={[fieldState.error]} />
-                  ) : (
-                    <FieldDescription>
-                      Quantity must be between 1 and 5000
-                    </FieldDescription>
-                  )}
-                </Field>
-              )}
-            />
-          </FieldGroup>
+                </div>
+              </CardContent>
+            </Card>
 
-          <FieldGroup>
-            <FieldSet>
-              <FieldLegend variant="label" className="text-sm">
-                Settings
-              </FieldLegend>
-              <Controller
-                name="options"
-                control={form.control}
-                render={({ field, fieldState }) => {
-                  return (
-                    <div className="flex flex-col gap-2">
-                      {/* Checkbox Grid */}
-                      <div className="grid md:grid-cols-2 gap-2">
-                        {optionItems.map((item) => {
-                          const REQUIRED_OPTION_IDS = [
-                            "uppercase",
-                            "lowercase",
-                            "number",
-                            "symbol",
-                          ];
-                          const isRequired = REQUIRED_OPTION_IDS.includes(
-                            item.id,
-                          );
+            {/* Batch Quantity Controller */}
+            <Card>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-primary" />
+                    <label htmlFor="quantity-input" className="text-sm font-semibold">
+                      Quantity
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      id="quantity-input"
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={currentQuantity}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        form.setValue("quantity", val, { shouldValidate: true });
+                        runGenerate();
+                      }}
+                      className="w-16 h-8 text-center font-mono font-bold text-sm"
+                    />
+                    <span className="text-xs text-muted-foreground">passwords</span>
+                  </div>
+                </div>
 
-                          return (
-                            <Field
-                              key={item.id}
-                              orientation="horizontal"
-                              data-invalid={fieldState.invalid && isRequired}
-                            >
-                              <Checkbox
-                                id={`rhf-password-form-${item.id}`}
-                                checked={field.value.includes(item.id)}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...field.value, item.id]
-                                    : field.value.filter(
-                                        (v: string) => v !== item.id,
-                                      );
-                                  field.onChange(newValue);
-                                }}
-                                aria-invalid={fieldState.invalid && isRequired}
-                                className="cursor-pointer"
-                              />
+                {/* Presets */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-xs text-muted-foreground mr-1">Presets:</span>
+                  {QUANTITY_PRESETS.map((preset) => (
+                    <Button
+                      key={preset}
+                      type="button"
+                      variant={currentQuantity === preset ? "default" : "outline"}
+                      size="xs"
+                      onClick={() => {
+                        form.setValue("quantity", preset, { shouldValidate: true });
+                        runGenerate();
+                      }}
+                      className="cursor-pointer text-xs"
+                    >
+                      {preset}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-                              <FieldLabel
-                                htmlFor={`rhf-password-form-${item.id}`}
-                                className="font-normal"
-                                aria-invalid={fieldState.invalid && isRequired}
+            {/* Character Types Configuration */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Character Types
+                </h3>
+                {form.formState.errors.options && (
+                  <span className="text-xs text-destructive font-medium">
+                    {form.formState.errors.options.message}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <Controller
+                  name="options"
+                  control={form.control}
+                  render={({ field }) => (
+                    <>
+                      {charPoolItems.map((item) => {
+                        const isChecked = field.value.includes(item.id);
+
+                        const toggle = () => {
+                          const next = isChecked
+                            ? field.value.filter((id) => id !== item.id)
+                            : [...field.value, item.id];
+                          field.onChange(next);
+                          setTimeout(runGenerate, 0);
+                        };
+
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={toggle}
+                            className={cn(
+                              "flex items-start gap-2.5 p-3 rounded-lg border transition-all cursor-pointer select-none",
+                              isChecked
+                                ? "bg-primary/5 border-primary/40 shadow-xs"
+                                : "bg-card border-border/70 hover:bg-muted/30 opacity-70",
+                            )}
+                          >
+                            <Checkbox
+                              id={`opt-${item.id}`}
+                              checked={isChecked}
+                              onCheckedChange={toggle}
+                              className="mt-0.5"
+                            />
+                            <div className="space-y-0.5">
+                              <label
+                                htmlFor={`opt-${item.id}`}
+                                className="text-xs font-medium leading-none cursor-pointer block"
                               >
                                 {item.title}
-                              </FieldLabel>
-                            </Field>
-                          );
-                        })}
-                      </div>
-                      {/* Error message full width below the grid */}
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </div>
-                  );
-                }}
-              />
-            </FieldSet>
-          </FieldGroup>
-
-          <Field className="grid grid-cols-3 gap-2 *:cursor-pointer">
-            <Button type="submit">Generate</Button>
-            <Button type="button" variant="outline" onClick={copyNextPassword}>
-              Copy
-            </Button>
-            <Button type="button" variant="outline" onClick={copyAllPasswords}>
-              Copy All
-            </Button>
-          </Field>
-        </FieldSet>
-      </form>
-
-      <ScrollArea className="h-full max-h-[50vh] w-full overflow-auto rounded-md border shadow-xs">
-        <div className="p-2 space-y-1">
-          {passwords.map((password, index) => {
-            const highlighted =
-              copiedItemIndex === "all" || copiedItemIndex === index;
-
-            return (
-              <div
-                key={index}
-                className={cn(
-                  "flex items-center p-0.5",
-                  highlighted && "bg-accent/50",
-                )}
-              >
-                <span className="font-mono">{password}</span>
+                              </label>
+                              <p className="text-[11px] text-muted-foreground font-mono">
+                                {item.description}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                />
               </div>
-            );
-          })}
+            </div>
+
+            {/* Advanced Rules & Preferences */}
+            <div className="space-y-2.5">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Rules & Preferences
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <Controller
+                  name="options"
+                  control={form.control}
+                  render={({ field }) => (
+                    <>
+                      {preferenceItems.map((item) => {
+                        const isChecked = field.value.includes(item.id);
+
+                        const toggle = () => {
+                          const next = isChecked
+                            ? field.value.filter((id) => id !== item.id)
+                            : [...field.value, item.id];
+                          field.onChange(next);
+                          setTimeout(runGenerate, 0);
+                        };
+
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={toggle}
+                            className={cn(
+                              "flex items-start gap-2.5 p-3 rounded-lg border transition-all cursor-pointer select-none",
+                              isChecked
+                                ? "bg-muted/60 border-border shadow-xs"
+                                : "bg-card border-border/50 hover:bg-muted/30 opacity-70",
+                            )}
+                          >
+                            <Checkbox
+                              id={`pref-${item.id}`}
+                              checked={isChecked}
+                              onCheckedChange={toggle}
+                              className="mt-0.5"
+                            />
+                            <div className="space-y-0.5">
+                              <label
+                                htmlFor={`pref-${item.id}`}
+                                className="text-xs font-medium leading-none cursor-pointer block"
+                              >
+                                {item.title}
+                              </label>
+                              <p className="text-[11px] text-muted-foreground">
+                                {item.description}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                />
+              </div>
+            </div>
+          </form>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
