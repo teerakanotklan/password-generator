@@ -346,7 +346,7 @@ export function GeneratePasswordForm() {
           >
             <div className="space-y-4">
               {/* Settings Header matching Left Card Header */}
-              <div className="flex items-center justify-between min-h-8">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Settings2 className="h-4 w-4 text-primary" />
                   <h2 className="text-sm font-semibold tracking-tight">
@@ -377,36 +377,41 @@ export function GeneratePasswordForm() {
                 onCommit={runGenerate}
               />
 
-              {/* Character Types Configuration */}
-              <Controller
-                name="options"
-                control={form.control}
-                render={({ field }) => (
-                  <CharacterTypesControl
-                    selectedOptions={field.value}
-                    onChange={(next) => {
-                      field.onChange(next);
-                      setTimeout(runGenerate, 0);
-                    }}
-                    error={form.formState.errors.options?.message}
+              {/* Character Types & Advanced Rules Section */}
+              <Card>
+                <CardContent className="space-y-3">
+                  {/* Character Types Configuration */}
+                  <Controller
+                    name="options"
+                    control={form.control}
+                    render={({ field }) => (
+                      <CharacterTypesControl
+                        selectedOptions={field.value}
+                        onChange={(next) => {
+                          field.onChange(next);
+                          setTimeout(runGenerate, 0);
+                        }}
+                        error={form.formState.errors.options?.message}
+                      />
+                    )}
                   />
-                )}
-              />
 
-              {/* Advanced Rules & Preferences */}
-              <Controller
-                name="options"
-                control={form.control}
-                render={({ field }) => (
-                  <RulesPreferencesControl
-                    selectedOptions={field.value}
-                    onChange={(next) => {
-                      field.onChange(next);
-                      setTimeout(runGenerate, 0);
-                    }}
+                  {/* Advanced Rules & Preferences */}
+                  <Controller
+                    name="options"
+                    control={form.control}
+                    render={({ field }) => (
+                      <RulesPreferencesControl
+                        selectedOptions={field.value}
+                        onChange={(next) => {
+                          field.onChange(next);
+                          setTimeout(runGenerate, 0);
+                        }}
+                      />
+                    )}
                   />
-                )}
-              />
+                </CardContent>
+              </Card>
             </div>
           </form>
         </div>

@@ -5,6 +5,14 @@ import { Layers } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 
 interface PasswordQuantityControlProps {
   value: number;
@@ -30,75 +38,54 @@ export function PasswordQuantityControl({
   };
 
   return (
-    <div className="p-3.5 rounded-xl border border-border/70 bg-card/60 space-y-2.5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4 text-primary" />
-          <label
-            htmlFor="quantity-input"
-            className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-          >
-            Quantity
-          </label>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Input
-            id="quantity-input"
-            type="number"
+    <Card>
+      <CardHeader className="space-y-4">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" />
+            <label
+              htmlFor="quantity-input"
+              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              Quantity
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Input
+              id="quantity-input"
+              type="number"
+              min={1}
+              max={500}
+              value={value}
+              onChange={handleInputChange}
+              className="w-20 h-8 text-center font-mono font-bold text-sm"
+              aria-label="Password quantity value"
+            />
+            <span className="text-xs text-muted-foreground font-mono">
+              passwords
+            </span>
+          </div>
+        </CardTitle>
+        <CardDescription>
+          <Slider
+            value={value}
             min={1}
             max={500}
-            value={value}
-            onChange={handleInputChange}
-            className="w-20 h-8 text-center font-mono font-bold text-sm"
-            aria-label="Password quantity value"
+            step={1}
+            onValueChange={handleSliderChange}
+            onValueCommitted={onCommit}
+            aria-label="Password quantity slider"
           />
-          <span className="text-xs text-muted-foreground font-mono">passwords</span>
-        </div>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
-      <div className="py-1">
-        <Slider
-          value={value}
-          min={1}
-          max={500}
-          step={1}
-          onValueChange={handleSliderChange}
-          onValueCommitted={onCommit}
-          aria-label="Password quantity slider"
-        />
-      </div>
-
-      {/* Fast preset pills for quantity */}
-      <div className="flex items-center justify-between gap-1.5 pt-1">
-        <span className="text-[11px] text-muted-foreground select-none">Presets:</span>
-        <div className="flex items-center gap-1.5">
-          {[1, 5, 10, 25, 50].map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => {
-                onChange(preset);
-                onCommit?.();
-              }}
-              className={cn(
-                "px-2 py-0.5 rounded-md text-[11px] font-mono transition-colors cursor-pointer border",
-                value === preset
-                  ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
-                  : "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50",
-              )}
-            >
-              {preset}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <p className="text-[11px] text-muted-foreground flex items-center justify-between pt-0.5">
-        <span>Batch generation</span>
-        <span className="font-medium text-foreground/80">
+      <CardContent className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">Batch generation</p>
+        <p className="text-xs text-muted-foreground">
           Max: 500 passwords at once
-        </span>
-      </p>
-    </div>
+        </p>
+      </CardContent>
+    </Card>
   );
 }

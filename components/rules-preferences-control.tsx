@@ -3,6 +3,7 @@
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { Label } from "./ui/label";
 
 export interface PreferenceItem {
   id: string;
@@ -50,8 +51,8 @@ export function RulesPreferencesControl({
   };
 
   return (
-    <div className="space-y-2.5 pt-1">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="space-y-2.5">
+      <h3 className="text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Rules & Preferences
       </h3>
 
@@ -63,30 +64,19 @@ export function RulesPreferencesControl({
             <div
               key={item.id}
               onClick={() => toggleOption(item.id)}
-              className={cn(
-                "flex items-start gap-2.5 p-3 rounded-lg border transition-all cursor-pointer select-none",
-                isChecked
-                  ? "bg-muted/60 border-border shadow-xs"
-                  : "bg-card border-border/50 hover:bg-muted/30 opacity-70",
-              )}
+              className="flex items-center gap-2"
             >
               <Checkbox
                 id={`pref-${item.id}`}
                 checked={isChecked}
                 onCheckedChange={() => toggleOption(item.id)}
-                className="mt-0.5"
               />
-              <div className="space-y-0.5">
-                <label
-                  htmlFor={`pref-${item.id}`}
-                  className="text-xs font-medium leading-none cursor-pointer block"
-                >
-                  {item.title}
-                </label>
-                <p className="text-[11px] text-muted-foreground">
-                  {item.description}
-                </p>
-              </div>
+              <Label
+                htmlFor={`pref-${item.id}`}
+                className="text-xs font-medium leading-none cursor-pointer"
+              >
+                {item.title}
+              </Label>
             </div>
           );
         })}
