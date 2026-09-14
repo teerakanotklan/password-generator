@@ -43,11 +43,14 @@ export function RulesPreferencesControl({
   selectedOptions,
   onChange,
 }: RulesPreferencesControlProps) {
-  const toggleOption = (id: string) => {
-    const next = selectedOptions.includes(id)
-      ? selectedOptions.filter((item) => item !== id)
-      : [...selectedOptions, id];
-    onChange(next);
+  const handleOptionChange = (id: string, checked: boolean) => {
+    if (checked) {
+      if (!selectedOptions.includes(id)) {
+        onChange([...selectedOptions, id]);
+      }
+    } else {
+      onChange(selectedOptions.filter((item) => item !== id));
+    }
   };
 
   return (
@@ -63,17 +66,18 @@ export function RulesPreferencesControl({
           return (
             <div
               key={item.id}
-              onClick={() => toggleOption(item.id)}
               className="flex items-center gap-2"
             >
               <Checkbox
                 id={`pref-${item.id}`}
                 checked={isChecked}
-                onCheckedChange={() => toggleOption(item.id)}
+                onCheckedChange={(checked) =>
+                  handleOptionChange(item.id, Boolean(checked))
+                }
               />
               <Label
                 htmlFor={`pref-${item.id}`}
-                className="text-xs font-medium leading-none cursor-pointer"
+                className="text-xs font-medium leading-none cursor-pointer select-none"
               >
                 {item.title}
               </Label>

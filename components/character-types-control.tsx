@@ -34,11 +34,14 @@ export function CharacterTypesControl({
   onChange,
   error,
 }: CharacterTypesControlProps) {
-  const toggleOption = (id: string) => {
-    const next = selectedOptions.includes(id)
-      ? selectedOptions.filter((item) => item !== id)
-      : [...selectedOptions, id];
-    onChange(next);
+  const handleOptionChange = (id: string, checked: boolean) => {
+    if (checked) {
+      if (!selectedOptions.includes(id)) {
+        onChange([...selectedOptions, id]);
+      }
+    } else {
+      onChange(selectedOptions.filter((item) => item !== id));
+    }
   };
 
   return (
@@ -61,11 +64,13 @@ export function CharacterTypesControl({
               <Checkbox
                 id={`opt-${item.id}`}
                 checked={isChecked}
-                onCheckedChange={() => toggleOption(item.id)}
+                onCheckedChange={(checked) =>
+                  handleOptionChange(item.id, Boolean(checked))
+                }
               />
               <Label
                 htmlFor={`opt-${item.id}`}
-                className="text-sm font-medium cursor-pointer"
+                className="text-sm font-medium cursor-pointer select-none"
               >
                 {item.title}
               </Label>

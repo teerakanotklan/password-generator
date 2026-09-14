@@ -404,8 +404,20 @@ export function GeneratePasswordForm() {
                       <RulesPreferencesControl
                         selectedOptions={field.value}
                         onChange={(next) => {
+                          const prevGenOpts = field.value
+                            .filter((opt) => opt !== "save")
+                            .sort()
+                            .join(",");
+                          const nextGenOpts = next
+                            .filter((opt) => opt !== "save")
+                            .sort()
+                            .join(",");
+
                           field.onChange(next);
-                          setTimeout(runGenerate, 0);
+
+                          if (prevGenOpts !== nextGenOpts) {
+                            setTimeout(runGenerate, 0);
+                          }
                         }}
                       />
                     )}
