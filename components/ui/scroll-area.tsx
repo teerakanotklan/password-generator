@@ -8,8 +8,9 @@ import { cn } from "@/lib/utils"
 function ScrollArea({
   className,
   children,
+  hideScrollbar = false,
   ...props
-}: ScrollAreaPrimitive.Root.Props) {
+}: ScrollAreaPrimitive.Root.Props & { hideScrollbar?: boolean }) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -18,12 +19,15 @@ function ScrollArea({
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        className={cn(
+          "size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1",
+          hideScrollbar && "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        )}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
-      <ScrollAreaPrimitive.Corner />
+      {!hideScrollbar && <ScrollBar />}
+      {!hideScrollbar && <ScrollAreaPrimitive.Corner />}
     </ScrollAreaPrimitive.Root>
   )
 }

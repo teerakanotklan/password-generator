@@ -1,84 +1,83 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { usePasswordGenerator } from "@/hooks/use-password-generator";
 import { useFormPersistence } from "@/hooks/use-form-persistence";
+import { StrengthMeter } from "@/components/strength-meter";
+import { PasswordGeneratorSkeleton } from "@/components/password-generator-skeleton";
+import { PasswordLengthControl } from "@/components/password-length-control";
+import { PasswordQuantityControl } from "@/components/password-quantity-control";
+import { CharacterTypesControl } from "@/components/character-types-control";
+import { RulesPreferencesControl } from "@/components/rules-preferences-control";
+import { PasswordDisplayList } from "@/components/password-display-list";
 
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldLabel,
-  FieldError,
-  FieldDescription,
-  FieldGroup,
-  FieldSet,
-  FieldLegend,
-} from "@/components/ui/field";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "./ui/checkbox";
+import {
+  Copy,
+  Check,
+  RotateCw,
+  Download,
+  Sparkles,
+  AlertCircle,
+  CheckCheck,
+  Settings2,
+  ListFilter,
+  SlidersHorizontal,
+} from "lucide-react";
 
 const formSchema = z.object({
-  length: z.coerce
-    .number({ error: "Password length must be a number" })
-    .min(4, "Password length must be at least 4 characters")
-    .max(32, "Password length cannot exceed 32 characters"),
+  length: z
+    .number()
+    .min(4, "Length must be at least 4 characters")
+    .max(64, "Length cannot exceed 64 characters"),
 
-  quantity: z.coerce
-    .number({ error: "Quantity must be a number" })
-    .min(1, "You must generate at least 1 password")
-    .max(5000, "You can generate up to 5000 passwords at a time"),
+  quantity: z
+    .number()
+    .min(1, "Quantity must be at least 1")
+    .max(500, "Maximum batch size is 500"),
+
   options: z.array(z.string()).refine(
     (value) => {
       const required = ["uppercase", "lowercase", "number", "symbol"];
       return value.some((id) => required.includes(id));
     },
     {
-      error: "Select at least one character type",
+      message: "Please select at least one character type",
     },
   ),
 });
 
-const optionItems = [
-  { id: "uppercase", title: "Include Uppercase Letters (A–Z)" },
-  { id: "lowercase", title: "Include Lowercase Letters (a–z)" },
-  { id: "number", title: "Include Numbers (0–9)" },
-  { id: "symbol", title: "Include Symbols (@, #, etc.)" },
-  { id: "beginWithLetter", title: "Ensure Password Starts With a Letter" },
-  { id: "excludeDuplicate", title: "Disallow Duplicate Characters" },
-  {
-    id: "excludeSimilar",
-    title: "Exclude Similar-Looking Characters (i, I, l, 1, o, O, 0)",
-  },
-  { id: "save", title: "Save Setting" },
-];
+type FormValues = z.infer<typeof formSchema>;
 
 export function GeneratePasswordForm() {
-  const [formReady, setFormReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"passwords" | "settings">(
+    "passwords",
+  );
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const {
     passwords,
+    generationError,
     copiedItemIndex,
     generatePasswords,
+    copySinglePassword,
     copyNextPassword,
     copyAllPasswords,
+    downloadAsTextFile,
   } = usePasswordGenerator();
 
-  const form = useForm({
-    resolver: zodResolver(formSchema as any),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       length: 8,
-      quantity: 1,
+      quantity: 5,
       options: [
         "uppercase",
         "lowercase",
@@ -87,198 +86,348 @@ export function GeneratePasswordForm() {
         "beginWithLetter",
         "excludeDuplicate",
         "excludeSimilar",
+        "save",
       ],
     },
   });
 
-  // Load saved settings if available
-  useFormPersistence(form, formSchema as any, () => setFormReady(true));
+  // Load saved settings if present in localStorage
+  useFormPersistence(form, formSchema);
 
-  // Helper for generate
-  const runGenerateFromForm = useCallback(() => {
+  // Trigger password generation based on form values
+  const runGenerate = useCallback(() => {
     const { length, quantity, options } = form.getValues();
+    const generatorOptions = options.filter((opt) => opt !== "save");
+
     generatePasswords({
-      length,
-      quantity,
-      options: options.filter((opt: string) => opt !== "saveSetting"),
+      length: Number(length) || 16,
+      quantity: Number(quantity) || 1,
+      options: generatorOptions,
     });
   }, [form, generatePasswords]);
 
-  // Generate password automatically once the form is ready
-  useEffect(() => {
-    if (!formReady) return;
-    runGenerateFromForm();
-  }, [formReady, runGenerateFromForm]);
+  // Debounced generator to keep slider dragging completely smooth at 60fps
+  const triggerDebouncedGenerate = useCallback(
+    (delay = 75) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = setTimeout(() => {
+        runGenerate();
+      }, delay);
+    },
+    [runGenerate],
+  );
 
-  // Standard submit handler
-  const handleGenerate = () => {
-    runGenerateFromForm();
+  useEffect(() => {
+    setMounted(true);
+    runGenerate();
+  }, [runGenerate]);
+
+  const handleManualRegenerate = () => {
+    setIsRotating(true);
+    runGenerate();
+    setTimeout(() => setIsRotating(false), 400);
   };
 
-  if (!formReady) return null;
+  const primaryPassword = passwords[0] || "";
+  const currentLength = form.watch("length");
+  const currentQuantity = form.watch("quantity");
+
+  // Show matching skeleton while client initializes
+  if (!mounted) {
+    return <PasswordGeneratorSkeleton />;
+  }
 
   return (
-    <div className="flex flex-col flex-1 h-full gap-6">
-      <h1 className="text-2xl font-semibold text-center">Password Generator</h1>
-
-      <form onSubmit={form.handleSubmit(handleGenerate)}>
-        <FieldSet>
-          <FieldGroup className="grid md:grid-cols-2">
-            <Controller
-              name="length"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel
-                    htmlFor="length"
-                    aria-invalid={fieldState.invalid}
-                  >
-                    Password Length
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id="length"
-                    aria-invalid={fieldState.invalid}
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid ? (
-                    <FieldError errors={[fieldState.error]} />
-                  ) : (
-                    <FieldDescription>
-                      Password length must be between 4 and 32
-                    </FieldDescription>
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="quantity"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel
-                    htmlFor="quantity"
-                    aria-invalid={fieldState.invalid}
-                  >
-                    Quantity
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id="quantity"
-                    aria-invalid={fieldState.invalid}
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid ? (
-                    <FieldError errors={[fieldState.error]} />
-                  ) : (
-                    <FieldDescription>
-                      Quantity must be between 1 and 5000
-                    </FieldDescription>
-                  )}
-                </Field>
-              )}
-            />
-          </FieldGroup>
-
-          <FieldGroup>
-            <FieldSet>
-              <FieldLegend variant="label" className="text-sm">
-                Settings
-              </FieldLegend>
-              <Controller
-                name="options"
-                control={form.control}
-                render={({ field, fieldState }) => {
-                  return (
-                    <div className="flex flex-col gap-2">
-                      {/* Checkbox Grid */}
-                      <div className="grid md:grid-cols-2 gap-2">
-                        {optionItems.map((item) => {
-                          const REQUIRED_OPTION_IDS = [
-                            "uppercase",
-                            "lowercase",
-                            "number",
-                            "symbol",
-                          ];
-                          const isRequired = REQUIRED_OPTION_IDS.includes(
-                            item.id,
-                          );
-
-                          return (
-                            <Field
-                              key={item.id}
-                              orientation="horizontal"
-                              data-invalid={fieldState.invalid && isRequired}
-                            >
-                              <Checkbox
-                                id={`rhf-password-form-${item.id}`}
-                                checked={field.value.includes(item.id)}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...field.value, item.id]
-                                    : field.value.filter(
-                                        (v: string) => v !== item.id,
-                                      );
-                                  field.onChange(newValue);
-                                }}
-                                aria-invalid={fieldState.invalid && isRequired}
-                                className="cursor-pointer"
-                              />
-
-                              <FieldLabel
-                                htmlFor={`rhf-password-form-${item.id}`}
-                                className="font-normal"
-                                aria-invalid={fieldState.invalid && isRequired}
-                              >
-                                {item.title}
-                              </FieldLabel>
-                            </Field>
-                          );
-                        })}
-                      </div>
-                      {/* Error message full width below the grid */}
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </div>
-                  );
-                }}
-              />
-            </FieldSet>
-          </FieldGroup>
-
-          <Field className="grid grid-cols-3 gap-2 *:cursor-pointer">
-            <Button type="submit">Generate</Button>
-            <Button type="button" variant="outline" onClick={copyNextPassword}>
-              Copy
-            </Button>
-            <Button type="button" variant="outline" onClick={copyAllPasswords}>
-              Copy All
-            </Button>
-          </Field>
-        </FieldSet>
-      </form>
-
-      <ScrollArea className="h-full max-h-[50vh] w-full overflow-auto rounded-md border shadow-xs">
-        <div className="p-2 space-y-1">
-          {passwords.map((password, index) => {
-            const highlighted =
-              copiedItemIndex === "all" || copiedItemIndex === index;
-
-            return (
-              <div
-                key={index}
-                className={cn(
-                  "flex items-center p-0.5",
-                  highlighted && "bg-accent/50",
-                )}
-              >
-                <span className="font-mono">{password}</span>
-              </div>
-            );
-          })}
+    <div className="w-full">
+      {/* Mobile Segmented View Switcher (Top of the page on mobile screens) */}
+      <div className="block lg:hidden mb-4">
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/50">
+          <button
+            type="button"
+            onClick={() => setMobileTab("passwords")}
+            className={cn(
+              "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer",
+              mobileTab === "passwords"
+                ? "bg-card text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <ListFilter className="h-3.5 w-3.5" />
+            <span>Passwords ({passwords.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("settings")}
+            className={cn(
+              "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer",
+              mobileTab === "settings"
+                ? "bg-card text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span>Settings</span>
+          </button>
         </div>
-      </ScrollArea>
+      </div>
+
+      {/* Responsive 2-Column Grid with Equal Height Partition on Desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* ========================================================================= */}
+        {/* LEFT COLUMN: Password Section (Borderless, contains carded password list) */}
+        {/* ========================================================================= */}
+
+        <div
+          className={cn(
+            "lg:col-span-7 flex flex-col h-auto lg:h-full lg:max-h-[690px] lg:overflow-hidden space-y-4 min-h-0",
+            mobileTab === "passwords" ? "flex" : "hidden lg:flex",
+          )}
+        >
+          {/* Header with Title and Global Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 min-h-8 shrink-0">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold tracking-tight">
+                Generated Passwords ({passwords.length.toLocaleString()})
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Regenerate Button */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                onClick={handleManualRegenerate}
+                title="Generate new password(s)"
+                className="rounded-lg h-8 w-8 cursor-pointer hover:bg-muted"
+              >
+                <RotateCw
+                  className={cn(
+                    "h-3.5 w-3.5 text-foreground transition-transform duration-300",
+                    isRotating && "rotate-180",
+                  )}
+                />
+              </Button>
+
+              {/* Action Buttons */}
+              {passwords.length > 1 ? (
+                <>
+                  {/* Sequential Copy Next Password */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyNextPassword}
+                    className="gap-1.5 text-xs h-8 cursor-pointer"
+                    title="Copy next password in order (cycles back to first)"
+                  >
+                    {typeof copiedItemIndex === "number" ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-primary" />
+                        <span className="font-mono">
+                          #{copiedItemIndex + 1}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Copy All Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyAllPasswords}
+                    className="gap-1.5 text-xs h-8 cursor-pointer"
+                  >
+                    {copiedItemIndex === "all" ? (
+                      <>
+                        <CheckCheck className="h-3.5 w-3.5 text-primary" />
+                        Copied All!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        Copy All
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadAsTextFile}
+                    className="gap-1.5 text-xs h-8 cursor-pointer"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    .txt
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copySinglePassword(0)}
+                    disabled={!primaryPassword}
+                    className="gap-1.5 text-xs h-8 px-3 cursor-pointer"
+                  >
+                    {copiedItemIndex === 0 ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-primary" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadAsTextFile}
+                    className="gap-1.5 text-xs h-8 cursor-pointer"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    .txt
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* 1. Include & Strength Section (At the TOP of the password list) */}
+          <div className="shrink-0">
+            <StrengthMeter password={primaryPassword} />
+          </div>
+
+          {/* Generation Error Alert if any */}
+          {generationError && (
+            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium shrink-0">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{generationError}</span>
+            </div>
+          )}
+
+          {/* 2. Password List Section (Modular Display Component) */}
+          <PasswordDisplayList
+            passwords={passwords}
+            primaryPassword={primaryPassword}
+            copiedItemIndex={copiedItemIndex}
+            onCopySingle={copySinglePassword}
+          />
+        </div>
+
+        {/* ========================================================================= */}
+        {/* RIGHT COLUMN: Settings Section (Capped at 690px on Desktop, Natural on Mobile) */}
+        {/* ========================================================================= */}
+        <div
+          className={cn(
+            "lg:col-span-5 flex flex-col h-auto lg:h-full lg:max-h-[690px]",
+            mobileTab === "settings" ? "flex" : "hidden lg:flex",
+          )}
+        >
+          <form
+            onSubmit={form.handleSubmit(runGenerate)}
+            className="flex flex-col h-auto lg:h-full lg:max-h-[690px]"
+          >
+            <div className="space-y-4">
+              {/* Settings Header matching Left Card Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold tracking-tight">
+                    Settings & Customization
+                  </h2>
+                </div>
+                <span className="text-xs text-muted-foreground font-mono">
+                  Parameters
+                </span>
+              </div>
+
+              {/* Parameters Section (Length & Quantity via shadcn Sliders) */}
+              <PasswordLengthControl
+                value={currentLength}
+                onChange={(val) => {
+                  form.setValue("length", val, { shouldValidate: true });
+                  triggerDebouncedGenerate(60);
+                }}
+                onCommit={runGenerate}
+              />
+
+              <PasswordQuantityControl
+                value={currentQuantity}
+                onChange={(val) => {
+                  form.setValue("quantity", val, { shouldValidate: true });
+                  triggerDebouncedGenerate(60);
+                }}
+                onCommit={runGenerate}
+              />
+
+              {/* Character Types & Advanced Rules Section */}
+              <Card>
+                <CardContent className="space-y-3">
+                  {/* Character Types Configuration */}
+                  <Controller
+                    name="options"
+                    control={form.control}
+                    render={({ field }) => (
+                      <CharacterTypesControl
+                        selectedOptions={field.value}
+                        onChange={(next) => {
+                          field.onChange(next);
+                          setTimeout(runGenerate, 0);
+                        }}
+                        error={form.formState.errors.options?.message}
+                      />
+                    )}
+                  />
+
+                  {/* Advanced Rules & Preferences */}
+                  <Controller
+                    name="options"
+                    control={form.control}
+                    render={({ field }) => (
+                      <RulesPreferencesControl
+                        selectedOptions={field.value}
+                        onChange={(next) => {
+                          const prevGenOpts = field.value
+                            .filter((opt) => opt !== "save")
+                            .sort()
+                            .join(",");
+                          const nextGenOpts = next
+                            .filter((opt) => opt !== "save")
+                            .sort()
+                            .join(",");
+
+                          field.onChange(next);
+
+                          if (prevGenOpts !== nextGenOpts) {
+                            setTimeout(runGenerate, 0);
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

@@ -2,17 +2,17 @@ import { useEffect, useRef } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { z } from "zod";
 
-const storageKey = "settings";
+const STORAGE_KEY = "password-generator-settings";
 
-export function useFormPersistence(
-  form: UseFormReturn<{
-    length: number;
-    options: string[];
-  }>,
-  schema: z.ZodObject<{
-    length: z.ZodNumber;
-    options: z.ZodArray<z.ZodString>;
-  }>,
+export interface PersistedFormData {
+  length: number;
+  quantity: number;
+  options: string[];
+}
+
+export function useFormPersistence<T extends PersistedFormData>(
+  form: UseFormReturn<T>,
+  schema: z.ZodType<T>,
   onReady?: () => void,
 ) {
   const hasInitialized = useRef(false);
@@ -23,7 +23,7 @@ export function useFormPersistence(
     hasInitialized.current = true;
 
     try {
-      const raw = localStorage.getItem(storageKey);
+      const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
         onReady?.();
         return;
@@ -39,7 +39,7 @@ export function useFormPersistence(
     } finally {
       onReady?.();
     }
-  }, [form, schema, onReady]); //  Run only once on mount
+  }, [form, schema, onReady]);
 
   // Watch and persist form changes
   useEffect(() => {
@@ -48,12 +48,12 @@ export function useFormPersistence(
         const isSaveEnabled = value?.options?.includes("save");
 
         if (isSaveEnabled) {
-          localStorage.setItem(storageKey, JSON.stringify(value));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
         } else {
-          localStorage.removeItem(storageKey);
+          localStorage.removeItem(STORAGE_KEY);
         }
       } catch (err) {
-        throw err;
+        console.warn("Failed to write to localStorage:", err);
       }
     });
 
