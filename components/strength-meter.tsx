@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { calculatePasswordStrength, type PasswordStrength } from "@/lib/utils";
+import { calculatePasswordStrength } from "@/lib/password/strength";
+import type { PasswordStrength } from "@/lib/password/types";
 import { Shield, ShieldAlert, ShieldCheck, Zap, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 

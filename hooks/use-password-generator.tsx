@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { generateSecurePassword } from "@/lib/utils";
+import { generateSecurePassword } from "@/lib/password/generator";
 
 export type CopiedState = number | "all" | null;
 
@@ -35,7 +35,7 @@ export function usePasswordGenerator() {
       );
 
       // Cap quantity to prevent blocking UI thread
-      const safeQuantity = Math.min(Math.max(1, quantity || 1), 5000);
+      const safeQuantity = Math.min(Math.max(1, quantity || 1), 500);
       const generatedList: string[] = [];
 
       for (let i = 0; i < safeQuantity; i++) {

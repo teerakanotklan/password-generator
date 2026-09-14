@@ -12,7 +12,7 @@ export interface PersistedFormData {
 
 export function useFormPersistence<T extends PersistedFormData>(
   form: UseFormReturn<T>,
-  schema: z.ZodType<T, any, any>,
+  schema: z.ZodType<T>,
   onReady?: () => void,
 ) {
   const hasInitialized = useRef(false);
