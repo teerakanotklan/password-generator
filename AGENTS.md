@@ -1,91 +1,103 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# Project Guidelines for AI Agents
 
-# This is NOT the Next.js you know
+## Overview
+This repository (`password-generator`) is a **Next.js 16** web application written in **TypeScript** that provides a modern, feature‑rich password generation tool. The UI is built with **React**, **Tailwind CSS**, **shadcn/ui**, and a set of custom components. It allows users to:
+- Generate multiple passwords with configurable length and character sets.
+- Copy individual or all passwords to the clipboard.
+- Download generated passwords as a text file.
+- Toggle between light/dark themes.
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+The primary goal of the project is to deliver a **responsive, aesthetically premium** password manager that showcases best‑in‑class web design (glassmorphism, smooth micro‑animations, custom typography) while remaining fully functional.
 
-<!-- END:nextjs-agent-rules -->
+---
 
-# Project Tech Stack & Architecture Memory
+## Tech Stack
+| Layer | Technology / Library | Purpose |
+|-------|----------------------|---------|
+| **Framework** | **Next.js 16.2.6** | Server‑side rendering, routing, API routes, file‑system based routing (app directory) |
+| **Language** | **TypeScript** (ts/tsx) | Static typing for robustness |
+| **Styling** | **Tailwind CSS** (v4) + custom CSS | Utility‑first styling, dark mode, custom design tokens |
+| **UI Components** | **shadcn/ui**, **@base-ui/react**, **lucide-react**, **tailwind‑merge**, **tw‑animate‑css** | Pre‑built accessible components and icons |
+| **Form Management** | **react‑hook‑form**, **@hookform/resolvers**, **zod** | Validation schema and form handling |
+| **State Management** | **React hooks** (custom `usePasswordGenerator`) | Core password generation logic |
+| **Theming** | **next‑themes**, custom `ThemeProvider` | Light/Dark theme toggle |
+| **Build Tools** | **pnpm**, **ESLint**, **TypeScript**, **PostCSS** | Dependency management, linting, transpilation |
+| **Deployment** | **Vercel** (default) | One‑click deploy via `vercel.json` |
 
-## Application Overview
+---
 
-- **Product**: VaultPass — Cryptographically Secure Local Password Generator
-- **Privacy Model**: 100% Client-Side generation via native Web Crypto API (`window.crypto.getRandomValues`). Zero server transmission.
-- **Layout Model**: Responsive 2-column desktop partition (max-height 690px with internal Base UI `ScrollArea` for passwords), borderless clean left panel containing interactive card-item password rows, settings Card container on the right, and mobile segmented tab bar placed at the very top for instant switching between passwords and settings.
+## Directory Structure (high‑level)
+```
+password-generator/
+├─ .next/                 # Build output (generated)
+├─ app/                   # Next.js app router pages
+├─ components/            # UI components (forms, controls, displays)
+│   ├─ generate-password-form.tsx
+│   ├─ password-display-list.tsx
+│   ├─ strength-meter.tsx
+│   └─ …
+├─ hooks/                 # Custom React hooks
+│   └─ use-password-generator.tsx
+├─ lib/                    # Utility libraries (e.g., password algorithms)
+├─ public/                # Static assets (if any)
+├─ styles/ (or global css) # Tailwind config / globals
+├─ .gitignore
+├─ package.json           # Dependencies & scripts
+├─ tsconfig.json
+├─ next.config.ts
+├─ README.md               # Project description & dev instructions
+└─ vercel.json            # Vercel deployment config
+```
 
-## Core Framework & Runtime
+Key files:
+- **[package.json](file:///d:/code/password-generator/package.json)** – lists dependencies, scripts (`dev`, `build`, `start`).
+- **[README.md](file:///d:/code/password-generator/README.md)** – basic setup instructions.
+- **[next.config.ts](file:///d:/code/password-generator/next.config.ts)** – Next.js configuration.
+- **[hooks/use-password-generator.tsx](file:///d:/code/password-generator/hooks/use-password-generator.tsx)** – Core hook that generates passwords, handles copy/download, and exposes state.
+- **[components/generate-password-form.tsx](file:///d:/code/password-generator/components/generate-password-form.tsx)** – UI for configuring generation options.
 
-- **Framework**: Next.js 16.2.6 (App Router, Turbopack)
-- **Runtime / UI Library**: React 19.2.4 & React DOM 19.2.4
-- **Language**: TypeScript 5.x
-- **Package Manager**: pnpm
+---
 
-## Styling & Design System
+## Core Functionality
+1. **Password Generation** – Implemented in `usePasswordGenerator` using configurable character sets and quantity.
+2. **Copy & Download** – Provides `copySinglePassword`, `copyAllPasswords`, and `downloadAsTextFile` utilities.
+3. **User Preferences** – Controls for length, quantity, character‑type toggles, and rule preferences.
+4. **Theme Support** – `ThemeProvider` and `ThemeToggle` manage light/dark mode with smooth transitions.
+5. **Accessibility & Animations** – Uses `tw-animate-css` for subtle micro‑animations and ShadCN components for accessible UI.
 
-- **CSS Framework**: Tailwind CSS v4 (`@tailwindcss/postcss`, `tailwindcss`, `tw-animate-css`)
-- **Component System**: shadcn/ui (`style: base-vega`, `baseColor: neutral`)
-- **Primitive Components**: Base UI (`@base-ui/react` v1.5.0 — Slider, ScrollArea)
-- **Icons**: Lucide React (`lucide-react`)
-- **Theming**: `next-themes` (Dark, Light, System themes supported via `ThemeProvider` and `ThemeToggle`)
-- **Class Utilities**: `clsx`, `tailwind-merge` (`cn` helper in `lib/utils.ts`)
+---
 
-## Form Management & Validation
+## Goals for Future AI Agents
+- **Maintainability**: When modifying or extending the app, respect the existing component hierarchy (UI ↔ hooks ↔ lib). Add new components under `components/` and keep business logic in `hooks/` or `lib/`.
+- **Design Consistency**: Follow the established Tailwind design tokens and animation utilities. Avoid introducing inline styles that break the premium visual language.
+- **Performance**: Leverage Next.js's built‑in image optimization and server‑side rendering where appropriate. Keep bundle size low; prefer lazy‑loading heavy components.
+- **Extensibility**: New password policies (e.g., exclude ambiguous characters) should be added to the generator logic inside the hook and exposed via the form controls.
+- **Testing**: Ensure any changes are covered by unit tests (if present) and manually verify UI via `pnpm dev`.
 
-- **Form State**: `react-hook-form` (v7.76.x)
-- **Schema Validation**: `zod` (v4.4.x)
-- **Resolvers**: `@hookform/resolvers/zod`
-- **Form Persistence**: Custom hook `useFormPersistence` reading/writing to browser `localStorage` under key `password-generator-settings` (when the `save` preference toggle is active).
+---
 
-## Core Cryptography & Algorithm Logic (`lib/password/`)
+## Build / Run Instructions
+```bash
+# Install dependencies
+npm install   # or pnpm install (project uses pnpm)
 
-- `lib/utils.ts`: Tailwind class merging (`cn`).
-- `lib/password/constants.ts`: Character sets (`CHAR_SETS`) and ambiguous character filters (`SIMILAR_CHAR_SET`).
-- `lib/password/types.ts`: Type definitions (`GeneratePasswordResult`, `PasswordStrength`, `CharType`).
-- `lib/password/generator.ts`: Cryptographic RNG via Web Crypto rejection sampling (`getSecureRandomInt`), Fisher–Yates shuffle, character pool guarantees, and password generation (`generateSecurePassword`, `generatePassword`).
-- `lib/password/strength.ts`: Entropy and crack-time calculations (`calculatePasswordStrength`), character syntax classification (`getCharType`).
-- **RNG**: Native `crypto.getRandomValues(new Uint32Array(1))`
-- **Bias Elimination**: Rejection sampling (`limit = Math.floor(0x100000000 / max) * max`) to remove modulo bias.
-- **Generation Flow**:
-  1. Guarantees at least 1 character from each enabled character pool.
-  2. Fills remaining characters up to length using cryptographically secure random selection.
-  3. Applies Fisher–Yates shuffle using `getSecureRandomInt`.
-  4. Enforces leading letter constraint if `beginWithLetter` rule is enabled.
-  5. Enforces unique character constraints if `excludeDuplicate` rule is enabled.
-- **Character Pools**:
-  - Uppercase: `A-Z`
-  - Lowercase: `a-z`
-  - Numbers: `0-9`
-  - Symbols: `@#`
-  - Ambiguous / Similar filter: `i, I, l, 1, o, O, 0, S, 5, B, 8`
-- **Password Strength & Entropy**:
-  - Shannon Entropy: $E = \text{length} \times \log_2(\text{poolSize})$ bits.
-  - Cracking estimate: Offline modern GPU benchmark at $10^{10}$ guesses/sec.
-  - Scores 0–4 (Very Weak, Weak, Fair, Strong, Very Strong) with color-coded UI badges.
+# Development server
+pnpm dev   # runs `next dev` (http://localhost:3000)
 
-## Component Structure & Responsibilities
+# Production build
+pnpm build && pnpm start
+```
 
-- `app/layout.tsx`: Root HTML shell, fonts (Inter & Geist Mono), sticky header with `ThemeToggle`, footer with privacy badge, `ThemeProvider`.
-- `app/page.tsx`: Main page container wrapping `GeneratePasswordForm`.
-- `app/loading.tsx`: Server navigation loading state rendering `PasswordGeneratorSkeleton`.
-- `components/generate-password-form.tsx`: Primary orchestrator combining form state, debounced generation, copy/download actions, error display, mobile Hero Card with tap-to-copy, mobile segmented tab view switcher, and responsive column layouts.
-- `components/password-display-list.tsx`: Scrollable list rendering passwords with per-character syntax highlighting (numbers in blue, symbols in bold amber), touch-friendly click-to-copy, persistent copy feedback on mobile, and status feedback.
-- `components/strength-meter.tsx`: 4-segment visual strength bar, Shannon entropy (bits), crack-time estimate, and character pool indicator tags.
-- `components/password-length-control.tsx`: Slider, number input (4–64 characters), and quick preset chips (`12`, `16`, `20`, `24`, `32`) for mobile touch speed.
-- `components/password-quantity-control.tsx`: Slider, number input for batch generation (1–500 passwords), and quick preset chips (`1`, `5`, `10`, `25`, `50`).
-- `components/character-types-control.tsx`: Checkbox toggles for Uppercase, Lowercase, Numbers, and Symbols.
-- `components/rules-preferences-control.tsx`: Checkbox toggles for Start with a Letter, Disallow Duplicates, Avoid Ambiguous Characters, and Save Preferences.
-- `components/password-generator-skeleton.tsx`: Borderless hydration skeleton matching exact layout and mobile hero card to prevent layout shift.
-- `components/theme-provider.tsx` & `components/theme-toggle.tsx`: Dark/Light theme switching integration.
-- `components/ui/*`: shadcn/ui components (`button`, `card`, `checkbox`, `input`, `scroll-area`, `slider`, `skeleton`, etc.).
+Deploy to Vercel using the provided `vercel.json` configuration for a one‑click deployment.
 
-## Hooks (`hooks/`)
+---
 
-- `hooks/use-password-generator.tsx`: Encapsulates password array state, generation trigger, copy single, copy next (sequential cyclic copy), copy all, and `.txt` file export.
-- `hooks/use-form-persistence.tsx`: Subscribes to form changes and syncs settings to `localStorage` when `save` option is present.
+## Quick Reference for AI Agents
+- Use **`next dev`** for hot‑reloading during development.
+- All UI components import Tailwind classes; follow the existing naming conventions.
+- When adding new dependencies, update **`package.json`** and run `pnpm install`.
+- Keep the `hooks/` directory focused on pure logic; UI stays in `components/`.
 
-## Development & Build Commands
+---
 
-- Dev server: `pnpm dev`
-- Production build: `pnpm build`
-- Linter: `pnpm lint`
+*End of Guidelines.*
