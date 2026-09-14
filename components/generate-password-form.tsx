@@ -26,6 +26,8 @@ import {
   AlertCircle,
   CheckCheck,
   Settings2,
+  ListFilter,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const formSchema = z.object({
@@ -55,6 +57,9 @@ type FormValues = z.infer<typeof formSchema>;
 export function GeneratePasswordForm() {
   const [mounted, setMounted] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"passwords" | "settings">(
+    "passwords",
+  );
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
@@ -71,13 +76,15 @@ export function GeneratePasswordForm() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      length: 16,
-      quantity: 1,
+      length: 8,
+      quantity: 5,
       options: [
         "uppercase",
         "lowercase",
         "number",
         "symbol",
+        "beginWithLetter",
+        "excludeDuplicate",
         "excludeSimilar",
         "save",
       ],
@@ -134,14 +141,52 @@ export function GeneratePasswordForm() {
 
   return (
     <div className="w-full">
-      {/* Responsive 2-Column Grid with Equal Height Partition */}
+      {/* Mobile Segmented View Switcher (Top of the page on mobile screens) */}
+      <div className="block lg:hidden mb-4">
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/50">
+          <button
+            type="button"
+            onClick={() => setMobileTab("passwords")}
+            className={cn(
+              "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer",
+              mobileTab === "passwords"
+                ? "bg-card text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <ListFilter className="h-3.5 w-3.5" />
+            <span>Passwords ({passwords.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("settings")}
+            className={cn(
+              "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer",
+              mobileTab === "settings"
+                ? "bg-card text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span>Settings</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Responsive 2-Column Grid with Equal Height Partition on Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* ========================================================================= */}
-        {/* LEFT COLUMN: Password Section (No Card or Border Effect)                  */}
+        {/* LEFT COLUMN: Password Section (Borderless, contains carded password list) */}
         {/* ========================================================================= */}
-        <div className="lg:col-span-7 flex flex-col h-auto lg:h-full lg:max-h-[690px] lg:overflow-hidden space-y-4 p-4 sm:p-6 min-h-0">
+
+        <div
+          className={cn(
+            "lg:col-span-7 flex flex-col h-auto lg:h-full lg:max-h-[690px] lg:overflow-hidden space-y-4 min-h-0",
+            mobileTab === "passwords" ? "flex" : "hidden lg:flex",
+          )}
+        >
           {/* Header with Title and Global Actions */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border/40 shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 min-h-8 shrink-0">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold tracking-tight">
@@ -182,7 +227,9 @@ export function GeneratePasswordForm() {
                     {typeof copiedItemIndex === "number" ? (
                       <>
                         <Check className="h-3.5 w-3.5 text-primary" />
-                        <span className="font-mono">#{copiedItemIndex + 1}</span>
+                        <span className="font-mono">
+                          #{copiedItemIndex + 1}
+                        </span>
                       </>
                     ) : (
                       <>
@@ -287,79 +334,80 @@ export function GeneratePasswordForm() {
         {/* ========================================================================= */}
         {/* RIGHT COLUMN: Settings Section (Capped at 690px on Desktop, Natural on Mobile) */}
         {/* ========================================================================= */}
-        <div className="lg:col-span-5 flex flex-col h-auto lg:h-full lg:max-h-[690px]">
+        <div
+          className={cn(
+            "lg:col-span-5 flex flex-col h-auto lg:h-full lg:max-h-[690px]",
+            mobileTab === "settings" ? "flex" : "hidden lg:flex",
+          )}
+        >
           <form
             onSubmit={form.handleSubmit(runGenerate)}
             className="flex flex-col h-auto lg:h-full lg:max-h-[690px]"
           >
-            <Card className="flex flex-col h-auto lg:h-full lg:max-h-[690px] lg:overflow-hidden">
-              <CardContent className="space-y-4 flex flex-col flex-1 p-4 sm:p-6 min-h-0">
-                {/* Settings Header matching Left Card Header */}
-                <div className="flex items-center justify-between pb-2 border-b border-border/40">
-                  <div className="flex items-center gap-2">
-                    <Settings2 className="h-4 w-4 text-primary" />
-                    <h2 className="text-sm font-semibold tracking-tight">
-                      Settings & Customization
-                    </h2>
-                  </div>
-                  <span className="text-xs text-muted-foreground font-mono">
-                    Parameters
-                  </span>
+            <div className="space-y-4">
+              {/* Settings Header matching Left Card Header */}
+              <div className="flex items-center justify-between min-h-8">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold tracking-tight">
+                    Settings & Customization
+                  </h2>
                 </div>
+                <span className="text-xs text-muted-foreground font-mono">
+                  Parameters
+                </span>
+              </div>
 
-                {/* Parameters Section (Length & Quantity via shadcn Sliders) */}
-                <div className="space-y-3">
-                  <PasswordLengthControl
-                    value={currentLength}
-                    onChange={(val) => {
-                      form.setValue("length", val, { shouldValidate: true });
-                      triggerDebouncedGenerate(60);
+              {/* Parameters Section (Length & Quantity via shadcn Sliders) */}
+              <PasswordLengthControl
+                value={currentLength}
+                onChange={(val) => {
+                  form.setValue("length", val, { shouldValidate: true });
+                  triggerDebouncedGenerate(60);
+                }}
+                onCommit={runGenerate}
+              />
+
+              <PasswordQuantityControl
+                value={currentQuantity}
+                onChange={(val) => {
+                  form.setValue("quantity", val, { shouldValidate: true });
+                  triggerDebouncedGenerate(60);
+                }}
+                onCommit={runGenerate}
+              />
+
+              {/* Character Types Configuration */}
+              <Controller
+                name="options"
+                control={form.control}
+                render={({ field }) => (
+                  <CharacterTypesControl
+                    selectedOptions={field.value}
+                    onChange={(next) => {
+                      field.onChange(next);
+                      setTimeout(runGenerate, 0);
                     }}
-                    onCommit={runGenerate}
+                    error={form.formState.errors.options?.message}
                   />
+                )}
+              />
 
-                  <PasswordQuantityControl
-                    value={currentQuantity}
-                    onChange={(val) => {
-                      form.setValue("quantity", val, { shouldValidate: true });
-                      triggerDebouncedGenerate(60);
+              {/* Advanced Rules & Preferences */}
+              <Controller
+                name="options"
+                control={form.control}
+                render={({ field }) => (
+                  <RulesPreferencesControl
+                    selectedOptions={field.value}
+                    onChange={(next) => {
+                      field.onChange(next);
+                      setTimeout(runGenerate, 0);
                     }}
-                    onCommit={runGenerate}
                   />
-                </div>
-
-                {/* Character Types Configuration */}
-                <Controller
-                  name="options"
-                  control={form.control}
-                  render={({ field }) => (
-                    <CharacterTypesControl
-                      selectedOptions={field.value}
-                      onChange={(next) => {
-                        field.onChange(next);
-                        setTimeout(runGenerate, 0);
-                      }}
-                      error={form.formState.errors.options?.message}
-                    />
-                  )}
-                />
-
-                {/* Advanced Rules & Preferences */}
-                <Controller
-                  name="options"
-                  control={form.control}
-                  render={({ field }) => (
-                    <RulesPreferencesControl
-                      selectedOptions={field.value}
-                      onChange={(next) => {
-                        field.onChange(next);
-                        setTimeout(runGenerate, 0);
-                      }}
-                    />
-                  )}
-                />
-              </CardContent>
-            </Card>
+                )}
+              />
+            </div>
           </form>
         </div>
       </div>

@@ -11,10 +11,26 @@ export interface PreferenceItem {
 }
 
 export const PREFERENCE_ITEMS: PreferenceItem[] = [
-  { id: "beginWithLetter", title: "Start with a Letter", description: "First char will be a letter" },
-  { id: "excludeDuplicate", title: "Disallow Duplicates", description: "No repeating characters" },
-  { id: "excludeSimilar", title: "Avoid Ambiguous", description: "Excludes i, l, 1, o, O, 0..." },
-  { id: "save", title: "Save Preferences", description: "Remember on this browser" },
+  {
+    id: "beginWithLetter",
+    title: "Start with a Letter",
+    description: "First char will be a letter",
+  },
+  {
+    id: "excludeDuplicate",
+    title: "Disallow Duplicates",
+    description: "No repeating characters",
+  },
+  {
+    id: "excludeSimilar",
+    title: "Avoid Ambiguous",
+    description: "Excludes i, l, 1, o, O, 0...",
+  },
+  {
+    id: "save",
+    title: "Save Preferences",
+    description: "Remember on this browser",
+  },
 ];
 
 interface RulesPreferencesControlProps {

@@ -4,6 +4,7 @@ import React from "react";
 import { Sliders } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { cn } from "@/lib/utils";
 
 interface PasswordLengthControlProps {
   value: number;
@@ -65,6 +66,31 @@ export function PasswordLengthControl({
           onValueCommitted={onCommit}
           aria-label="Password length slider"
         />
+      </div>
+
+      {/* Fast preset pills for touch & mobile */}
+      <div className="flex items-center justify-between gap-1.5 pt-1">
+        <span className="text-[11px] text-muted-foreground select-none">Presets:</span>
+        <div className="flex items-center gap-1.5">
+          {[8, 12, 16, 20, 24, 32].map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => {
+                onChange(preset);
+                onCommit?.();
+              }}
+              className={cn(
+                "px-2 py-0.5 rounded-md text-[11px] font-mono transition-colors cursor-pointer border",
+                value === preset
+                  ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
+                  : "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50",
+              )}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

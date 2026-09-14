@@ -11,7 +11,10 @@ interface StrengthMeterProps {
   className?: string;
 }
 
-export function StrengthMeter({ password = "", className }: StrengthMeterProps) {
+export function StrengthMeter({
+  password = "",
+  className,
+}: StrengthMeterProps) {
   const strength: PasswordStrength = useMemo(
     () => calculatePasswordStrength(password),
     [password],
@@ -88,7 +91,7 @@ export function StrengthMeter({ password = "", className }: StrengthMeterProps) 
       </div>
 
       {/* Character Composition Badges */}
-      <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px]">
+      {/* <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px]">
         <span className="text-muted-foreground mr-1">Includes:</span>
         <span
           className={cn(
@@ -130,7 +133,7 @@ export function StrengthMeter({ password = "", className }: StrengthMeterProps) 
         >
           Symbols (@#)
         </span>
-      </div>
+      </div> */}
     </div>
   );
 }

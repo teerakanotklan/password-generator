@@ -4,8 +4,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function PasswordGeneratorSkeleton() {
   return (
     <div className="w-full">
+      {/* Mobile Tab Switcher Skeleton */}
+      <div className="block lg:hidden mb-4">
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/50">
+          <Skeleton className="h-9 rounded-lg" />
+          <Skeleton className="h-9 rounded-lg" />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Left Column Skeleton: Passwords Section (No Card / Border) */}
+        {/* Left Column Skeleton: Passwords Section (Borderless with Card List Items) */}
         <div className="lg:col-span-7 flex flex-col h-auto lg:h-full lg:max-h-[690px] lg:overflow-hidden space-y-4 p-4 sm:p-6 min-h-0">
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-border/40">
@@ -39,13 +47,13 @@ export function PasswordGeneratorSkeleton() {
             </div>
           </div>
 
-          {/* Password List Placeholder */}
-          <div className="flex-1 flex flex-col gap-2 pt-2 min-h-0 h-[240px] sm:h-[300px] lg:h-full">
+          {/* Password List Placeholder (Card blocks) */}
+          <div className="flex-1 flex flex-col gap-2.5 pt-2 min-h-0 h-[240px] sm:h-[300px] lg:h-full">
             <Skeleton className="h-12 w-full rounded-xl" />
-            <Skeleton className="h-10 w-full rounded-lg" />
-            <Skeleton className="h-10 w-full rounded-lg" />
-            <Skeleton className="h-10 w-full rounded-lg" />
-            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
           </div>
         </div>
 
