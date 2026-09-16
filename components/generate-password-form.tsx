@@ -174,7 +174,7 @@ export function GeneratePasswordForm() {
       </div>
 
       {/* Responsive 2-Column Grid with Equal Height Partition on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
         {/* ========================================================================= */}
         {/* LEFT COLUMN: Password Section (Borderless, contains carded password list) */}
         {/* ========================================================================= */}
@@ -199,21 +199,17 @@ export function GeneratePasswordForm() {
               <Button
                 type="button"
                 variant="outline"
-                size="icon-sm"
+                size="sm"
                 onClick={handleManualRegenerate}
                 title="Generate new password(s)"
-                className="rounded-lg h-8 w-8 cursor-pointer hover:bg-muted"
+                className="cursor-pointer"
               >
-                <RotateCw
-                  className={cn(
-                    "h-3.5 w-3.5 text-foreground transition-transform duration-300",
-                    isRotating && "rotate-180",
-                  )}
-                />
+                <RotateCw />
+                <span>Generate</span>
               </Button>
 
               {/* Action Buttons */}
-              {passwords.length > 1 ? (
+              {passwords.length > 1 && (
                 <>
                   {/* Sequential Copy Next Password */}
                   <Button
@@ -221,22 +217,11 @@ export function GeneratePasswordForm() {
                     variant="outline"
                     size="sm"
                     onClick={copyNextPassword}
-                    className="gap-1.5 text-xs h-8 cursor-pointer"
+                    className="cursor-pointer"
                     title="Copy next password in order (cycles back to first)"
                   >
-                    {typeof copiedItemIndex === "number" ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-primary" />
-                        <span className="font-mono">
-                          #{copiedItemIndex + 1}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5" />
-                        Copy
-                      </>
-                    )}
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy One
                   </Button>
 
                   {/* Copy All Button */}
@@ -245,64 +230,11 @@ export function GeneratePasswordForm() {
                     variant="outline"
                     size="sm"
                     onClick={copyAllPasswords}
-                    className="gap-1.5 text-xs h-8 cursor-pointer"
+                    className="cursor-pointer"
+                    title="Copy all passwords to clipboard"
                   >
-                    {copiedItemIndex === "all" ? (
-                      <>
-                        <CheckCheck className="h-3.5 w-3.5 text-primary" />
-                        Copied All!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5" />
-                        Copy All
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadAsTextFile}
-                    className="gap-1.5 text-xs h-8 cursor-pointer"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    .txt
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copySinglePassword(0)}
-                    disabled={!primaryPassword}
-                    className="gap-1.5 text-xs h-8 px-3 cursor-pointer"
-                  >
-                    {copiedItemIndex === 0 ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-primary" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadAsTextFile}
-                    className="gap-1.5 text-xs h-8 cursor-pointer"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    .txt
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy All
                   </Button>
                 </>
               )}
