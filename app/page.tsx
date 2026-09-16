@@ -4,7 +4,7 @@ export default function HomePage() {
   return (
     <div className="flex-1 flex flex-col items-center px-4 py-6 sm:py-8">
       <div className="w-full max-w-6xl text-center">
-        <h1 className="text-4xl font-extrabold tracking-tight mb-12 text-gray-900 dark:text-gray-100">
+        <h1 className="text-4xl font-extrabold tracking-tight mb-6 text-gray-900 dark:text-gray-100">
           Password Generator
         </h1>
         <GeneratePasswordForm />

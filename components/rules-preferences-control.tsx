@@ -64,10 +64,7 @@ export function RulesPreferencesControl({
           const isChecked = selectedOptions.includes(item.id);
 
           return (
-            <div
-              key={item.id}
-              className="flex items-center gap-2"
-            >
+            <div key={item.id} className="flex items-center gap-2">
               <Checkbox
                 id={`pref-${item.id}`}
                 checked={isChecked}
@@ -75,10 +72,7 @@ export function RulesPreferencesControl({
                   handleOptionChange(item.id, Boolean(checked))
                 }
               />
-              <Label
-                htmlFor={`pref-${item.id}`}
-                className="text-xs font-medium leading-none cursor-pointer select-none"
-              >
+              <Label htmlFor={`pref-${item.id}`} className="">
                 {item.title}
               </Label>
             </div>
