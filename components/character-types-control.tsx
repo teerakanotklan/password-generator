@@ -2,8 +2,7 @@
 
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
-import { Label } from "./ui/label";
+import { Label } from "@/components/ui/label";
 
 export interface CharPoolItem {
   id: string;
@@ -67,11 +66,9 @@ export function CharacterTypesControl({
                 onCheckedChange={(checked) =>
                   handleOptionChange(item.id, Boolean(checked))
                 }
+                className="cursor-pointer"
               />
-              <Label
-                htmlFor={`opt-${item.id}`}
-                className="text-sm font-medium cursor-pointer select-none"
-              >
+              <Label htmlFor={`opt-${item.id}`} className="text-sm font-medium">
                 {item.title}
               </Label>
             </div>

@@ -2,8 +2,7 @@
 
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
-import { Label } from "./ui/label";
+import { Label } from "@/components/ui/label";
 
 export interface PreferenceItem {
   id: string;
@@ -71,6 +70,7 @@ export function RulesPreferencesControl({
                 onCheckedChange={(checked) =>
                   handleOptionChange(item.id, Boolean(checked))
                 }
+                className="cursor-pointer"
               />
               <Label htmlFor={`pref-${item.id}`} className="">
                 {item.title}

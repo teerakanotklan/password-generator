@@ -34,7 +34,7 @@ password-generator/
 ├─ components/            # UI components (forms, controls, displays)
 │   ├─ generate-password-form.tsx
 │   ├─ password-display-list.tsx
-│   ├─ strength-meter.tsx
+│   ├─ password-length-control.tsx
 │   └─ …
 ├─ hooks/                 # Custom React hooks
 │   └─ use-password-generator.tsx
