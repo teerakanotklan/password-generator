@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 
@@ -16,53 +15,47 @@ export function PasswordGeneratorSkeleton() {
       {/* Responsive 2-Column Grid on Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
         {/* ========================================================================= */}
-        {/* LEFT COLUMN: Password Section Skeleton (Unified Card)                     */}
+        {/* LEFT COLUMN: Password Section Skeleton (Open Layout)                      */}
         {/* ========================================================================= */}
-        <div className="lg:col-span-7 flex flex-col h-auto min-h-0">
-          <Card className="flex flex-col min-h-0 overflow-hidden">
-            {/* Header with Title and Global Actions */}
-            <CardHeader className="border-b pb-4 shrink-0">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <Skeleton className="h-7 w-7 rounded-lg" />
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-5 w-40 rounded-md" />
-                      <Skeleton className="h-5 w-8 rounded-full" />
-                    </div>
-                    <Skeleton className="h-3 w-48 rounded" />
-                  </div>
+        <div className="lg:col-span-7 flex flex-col space-y-6">
+          {/* Header with Title and Global Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/50">
+            <div className="flex items-center gap-2.5">
+              <Skeleton className="h-7 w-7 rounded-lg" />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-40 rounded-md" />
+                  <Skeleton className="h-5 w-8 rounded-full" />
                 </div>
+                <Skeleton className="h-3 w-48 rounded" />
+              </div>
+            </div>
 
-                <div className="flex items-center gap-1.5">
-                  <Skeleton className="h-8 w-24 rounded-md" />
-                  <Skeleton className="h-8 w-20 rounded-md" />
-                  <Skeleton className="h-8 w-20 rounded-md" />
+            <div className="flex items-center gap-1.5">
+              <Skeleton className="h-8 w-24 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+          </div>
+
+          {/* Password List Section Skeleton */}
+          <div className="space-y-1.5 p-1">
+            {Array.from({ length: 5 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-border/40"
+              >
+                <div className="flex items-center gap-3 flex-1">
+                  <Skeleton className="h-4 w-6 rounded shrink-0" />
+                  <Skeleton
+                    className="h-4 rounded"
+                    style={{ width: `${Math.max(40, 75 - idx * 8)}%` }}
+                  />
                 </div>
+                <Skeleton className="h-4 w-4 rounded ml-2" />
               </div>
-            </CardHeader>
-
-            {/* Password List Section Skeleton */}
-            <CardContent className="pt-4 flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex-1 min-h-[320px] space-y-1.5 p-1">
-                {Array.from({ length: 5 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-border/40"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <Skeleton className="h-4 w-6 rounded shrink-0" />
-                      <Skeleton
-                        className="h-4 rounded"
-                        style={{ width: `${Math.max(40, 75 - idx * 8)}%` }}
-                      />
-                    </div>
-                    <Skeleton className="h-4 w-4 rounded ml-2" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
         </div>
 
         {/* ========================================================================= */}

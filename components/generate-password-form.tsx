@@ -14,13 +14,6 @@ import { CharacterTypesControl } from "@/components/character-types-control";
 import { RulesPreferencesControl } from "@/components/rules-preferences-control";
 import { PasswordDisplayList } from "@/components/password-display-list";
 
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -175,119 +168,114 @@ export function GeneratePasswordForm() {
       {/* Responsive 2-Column Grid on Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
         {/* ========================================================================= */}
-        {/* LEFT COLUMN: Password Section (Unified shadcn Card)                       */}
+        {/* LEFT COLUMN: Password Section (Open Layout, Matches Right Column)         */}
         {/* ========================================================================= */}
         <div
           className={cn(
-            "lg:col-span-7 flex flex-col h-auto min-h-0",
+            "lg:col-span-7 flex flex-col space-y-6",
             mobileTab === "passwords" ? "flex" : "hidden lg:flex",
           )}
         >
-          <Card className="flex flex-col min-h-0 overflow-hidden">
-            <CardHeader className="border-b pb-4 shrink-0">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-base font-semibold">
-                        Generated Passwords
-                      </CardTitle>
-                      <Badge variant="secondary" className="font-mono text-xs">
-                        {passwords.length}
-                      </Badge>
-                    </div>
-                    <CardDescription className="text-xs">
-                      Click any password to copy to clipboard
-                    </CardDescription>
-                  </div>
+          {/* Header matching Right Column Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/50">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="text-left">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold tracking-tight">
+                    Generated Passwords
+                  </h2>
+                  <Badge variant="secondary" className="font-mono text-xs">
+                    {passwords.length}
+                  </Badge>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Click any password to copy to clipboard
+                </p>
+              </div>
+            </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {/* Regenerate Button */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Regenerate Button */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleManualRegenerate}
+                title="Generate new password(s)"
+                className="cursor-pointer gap-1.5"
+              >
+                <RotateCw
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    isRotating && "animate-spin",
+                  )}
+                />
+                <span>Generate</span>
+              </Button>
+
+              {/* Action Buttons */}
+              {passwords.length > 1 && (
+                <>
+                  {/* Sequential Copy Next Password */}
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={handleManualRegenerate}
-                    title="Generate new password(s)"
+                    onClick={copyNextPassword}
                     className="cursor-pointer gap-1.5"
+                    title="Copy next password in order (cycles back to first)"
                   >
-                    <RotateCw
-                      className={cn(
-                        "h-3.5 w-3.5",
-                        isRotating && "animate-spin",
-                      )}
-                    />
-                    <span>Generate</span>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>Copy One</span>
                   </Button>
 
-                  {/* Action Buttons */}
-                  {passwords.length > 1 && (
-                    <>
-                      {/* Sequential Copy Next Password */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={copyNextPassword}
-                        className="cursor-pointer gap-1.5"
-                        title="Copy next password in order (cycles back to first)"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        <span>Copy One</span>
-                      </Button>
+                  {/* Copy All Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyAllPasswords}
+                    className="cursor-pointer gap-1.5"
+                    title="Copy all passwords to clipboard"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>Copy All</span>
+                  </Button>
 
-                      {/* Copy All Button */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={copyAllPasswords}
-                        className="cursor-pointer gap-1.5"
-                        title="Copy all passwords to clipboard"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        <span>Copy All</span>
-                      </Button>
-
-                      {/* Export / Download Button */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={downloadAsTextFile}
-                        className="cursor-pointer gap-1.5"
-                        title="Download passwords as a text file"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Export</span>
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-4 flex-1 flex flex-col min-h-0 overflow-hidden">
-              {/* Generation Error Alert if any */}
-              {generationError && (
-                <div className="flex items-center gap-2.5 p-3 mb-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium shrink-0">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{generationError}</span>
-                </div>
+                  {/* Export / Download Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadAsTextFile}
+                    className="cursor-pointer gap-1.5"
+                    title="Download passwords as a text file"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Export</span>
+                  </Button>
+                </>
               )}
+            </div>
+          </div>
 
-              {/* Password List Section (Immediately at the top) */}
-              <PasswordDisplayList
-                passwords={passwords}
-                copiedItemIndex={copiedItemIndex}
-                onCopySingle={copySinglePassword}
-              />
-            </CardContent>
-          </Card>
+          {/* Generation Error Alert if any */}
+          {generationError && (
+            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium shrink-0">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{generationError}</span>
+            </div>
+          )}
+
+          {/* Password List Section (Immediately at the top) */}
+          <PasswordDisplayList
+            passwords={passwords}
+            copiedItemIndex={copiedItemIndex}
+            onCopySingle={copySinglePassword}
+          />
         </div>
 
         {/* ========================================================================= */}

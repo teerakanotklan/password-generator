@@ -3,8 +3,6 @@ import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { KeyRound } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const geistMono = Geist_Mono({
@@ -41,7 +39,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {/* Top Navigation Bar */}
-          <header className="w-full border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-50">
+          {/* <header className="w-full border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-50">
             <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
               <div className="flex items-center gap-2.5 font-bold tracking-tight text-foreground text-sm sm:text-base">
                 <div className="p-1.5 rounded-lg bg-primary text-primary-foreground">
@@ -51,7 +49,7 @@ export default function RootLayout({
               </div>
               <ThemeToggle />
             </div>
-          </header>
+          </header> */}
 
           {/* Main content */}
           <main className="flex-1 flex flex-col">{children}</main>

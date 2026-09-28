@@ -1,28 +1,8 @@
 import React from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { getCharType } from "@/lib/password/strength";
 import type { CopiedState } from "@/hooks/use-password-generator";
 import { Copy, Check } from "lucide-react";
-
-export function renderSyntaxPassword(pwd: string) {
-  return Array.from(pwd).map((char, index) => {
-    const type = getCharType(char);
-    let colorClass = "text-foreground";
-    if (type === "digit") colorClass = "text-blue-600 dark:text-blue-400 font-semibold";
-    else if (type === "symbol")
-      colorClass = "text-amber-600 dark:text-amber-400 font-bold";
-    else if (type === "upper") colorClass = "text-foreground font-medium";
-    else if (type === "lower") colorClass = "text-muted-foreground";
-
-    return (
-      <span key={index} className={colorClass}>
-        {char}
-      </span>
-    );
-  });
-}
 
 interface PasswordDisplayListProps {
   passwords: string[];
@@ -46,10 +26,7 @@ export function PasswordDisplayList({
   }
 
   return (
-    <ScrollArea
-      className="flex-1 min-h-[320px] max-h-[520px] lg:max-h-[560px] overflow-auto rounded-lg pr-1"
-      hideScrollbar
-    >
+    <div className="max-h-[520px] lg:max-h-[540px] overflow-y-auto pr-1">
       <div className="space-y-1.5 p-1">
         {passwords.map((pwd, idx) => {
           const isCopied = copiedItemIndex === idx;
@@ -69,8 +46,8 @@ export function PasswordDisplayList({
                 <span className="text-xs text-muted-foreground font-sans font-medium w-6 text-right shrink-0">
                   #{idx + 1}
                 </span>
-                <span className="truncate tracking-wide">
-                  {renderSyntaxPassword(pwd)}
+                <span className="truncate tracking-wide font-medium text-foreground">
+                  {pwd}
                 </span>
               </div>
 
@@ -90,6 +67,6 @@ export function PasswordDisplayList({
           );
         })}
       </div>
-    </ScrollArea>
+    </div>
   );
 }
