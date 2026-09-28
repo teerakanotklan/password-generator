@@ -172,18 +172,18 @@ export function GeneratePasswordForm() {
         </Tabs>
       </div>
 
-      {/* Responsive 2-Column Grid with Equal Height Partition on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+      {/* Responsive 2-Column Grid on Desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
         {/* ========================================================================= */}
         {/* LEFT COLUMN: Password Section (Unified shadcn Card)                       */}
         {/* ========================================================================= */}
         <div
           className={cn(
-            "lg:col-span-7 flex flex-col h-auto lg:h-full lg:max-h-[690px] min-h-0",
+            "lg:col-span-7 flex flex-col h-auto min-h-0",
             mobileTab === "passwords" ? "flex" : "hidden lg:flex",
           )}
         >
-          <Card className="h-full flex flex-col min-h-0 overflow-hidden">
+          <Card className="flex flex-col min-h-0 overflow-hidden">
             <CardHeader className="border-b pb-4 shrink-0">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
@@ -291,112 +291,108 @@ export function GeneratePasswordForm() {
         </div>
 
         {/* ========================================================================= */}
-        {/* RIGHT COLUMN: Settings Section (Unified shadcn Card)                      */}
+        {/* RIGHT COLUMN: Settings Section (Open Layout, No Card, No Scroll)          */}
         {/* ========================================================================= */}
         <div
           className={cn(
-            "lg:col-span-5 flex flex-col h-auto lg:h-full lg:max-h-[690px]",
+            "lg:col-span-5 flex flex-col space-y-6",
             mobileTab === "settings" ? "flex" : "hidden lg:flex",
           )}
         >
-          <Card className="h-full flex flex-col min-h-0 overflow-hidden">
-            <CardHeader className="border-b pb-4 shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                    <Settings2 className="h-4 w-4" />
-                  </div>
-                  <div className="text-left">
-                    <CardTitle className="text-base font-semibold">
-                      Settings & Rules
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Customize length, quantity, and character rules
-                    </CardDescription>
-                  </div>
-                </div>
-                <Badge variant="outline" className="font-mono text-xs">
-                  Config
-                </Badge>
+          {/* Settings Section Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-border/50">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <Settings2 className="h-4 w-4" />
               </div>
-            </CardHeader>
+              <div className="text-left">
+                <h2 className="text-base font-semibold tracking-tight">
+                  Settings & Rules
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Customize length, quantity, and character rules
+                </p>
+              </div>
+            </div>
+            <Badge variant="outline" className="font-mono text-xs">
+              Config
+            </Badge>
+          </div>
 
-            <CardContent className=" space-y-5 overflow-y-auto">
-              <form
-                onSubmit={form.handleSubmit(runGenerate)}
-                className="space-y-5"
-              >
-                {/* Parameters Section (Length Slider & Presets) */}
-                <PasswordLengthControl
-                  value={currentLength}
-                  onChange={(val) => {
-                    form.setValue("length", val, { shouldValidate: true });
-                    triggerDebouncedGenerate(60);
+          {/* Form Controls - Natural flow, no scroll container */}
+          <form
+            onSubmit={form.handleSubmit(runGenerate)}
+            className="space-y-5"
+          >
+            {/* Parameters Section (Length Slider & Presets) */}
+            <PasswordLengthControl
+              value={currentLength}
+              onChange={(val) => {
+                form.setValue("length", val, { shouldValidate: true });
+                triggerDebouncedGenerate(60);
+              }}
+              onCommit={runGenerate}
+            />
+
+            <Separator />
+
+            {/* Parameters Section (Quantity Slider) */}
+            <PasswordQuantityControl
+              value={currentQuantity}
+              onChange={(val) => {
+                form.setValue("quantity", val, { shouldValidate: true });
+                triggerDebouncedGenerate(60);
+              }}
+              onCommit={runGenerate}
+            />
+
+            <Separator />
+
+            {/* Character Types Configuration */}
+            <Controller
+              name="options"
+              control={form.control}
+              render={({ field }) => (
+                <CharacterTypesControl
+                  selectedOptions={field.value}
+                  onChange={(next) => {
+                    field.onChange(next);
+                    setTimeout(runGenerate, 0);
                   }}
-                  onCommit={runGenerate}
+                  error={form.formState.errors.options?.message}
                 />
+              )}
+            />
 
-                <Separator />
+            <Separator />
 
-                {/* Parameters Section (Quantity Slider) */}
-                <PasswordQuantityControl
-                  value={currentQuantity}
-                  onChange={(val) => {
-                    form.setValue("quantity", val, { shouldValidate: true });
-                    triggerDebouncedGenerate(60);
+            {/* Advanced Rules & Preferences */}
+            <Controller
+              name="options"
+              control={form.control}
+              render={({ field }) => (
+                <RulesPreferencesControl
+                  selectedOptions={field.value}
+                  onChange={(next) => {
+                    const prevGenOpts = field.value
+                      .filter((opt) => opt !== "save")
+                      .sort()
+                      .join(",");
+                    const nextGenOpts = next
+                      .filter((opt) => opt !== "save")
+                      .sort()
+                      .join(",");
+
+                    field.onChange(next);
+
+                    if (prevGenOpts !== nextGenOpts) {
+                      setTimeout(runGenerate, 0);
+                    }
                   }}
-                  onCommit={runGenerate}
                 />
-
-                <Separator />
-
-                {/* Character Types Configuration */}
-                <Controller
-                  name="options"
-                  control={form.control}
-                  render={({ field }) => (
-                    <CharacterTypesControl
-                      selectedOptions={field.value}
-                      onChange={(next) => {
-                        field.onChange(next);
-                        setTimeout(runGenerate, 0);
-                      }}
-                      error={form.formState.errors.options?.message}
-                    />
-                  )}
-                />
-
-                <Separator />
-
-                {/* Advanced Rules & Preferences */}
-                <Controller
-                  name="options"
-                  control={form.control}
-                  render={({ field }) => (
-                    <RulesPreferencesControl
-                      selectedOptions={field.value}
-                      onChange={(next) => {
-                        const prevGenOpts = field.value
-                          .filter((opt) => opt !== "save")
-                          .sort()
-                          .join(",");
-                        const nextGenOpts = next
-                          .filter((opt) => opt !== "save")
-                          .sort()
-                          .join(",");
-
-                        field.onChange(next);
-
-                        if (prevGenOpts !== nextGenOpts) {
-                          setTimeout(runGenerate, 0);
-                        }
-                      }}
-                    />
-                  )}
-                />
-              </form>
-            </CardContent>
-          </Card>
+              )}
+            />
+          </form>
         </div>
       </div>
     </div>
