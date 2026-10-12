@@ -1,7 +1,10 @@
-import type { PasswordStrength, CharType } from "./types";
+import type { PasswordStrength } from "./types";
 
 /**
- * Calculates password strength, Shannon entropy, and estimated offline crack time.
+ * Calculate password strength score, entropy, and crack time.
+ *
+ * @param password Password candidate string to evaluate.
+ * @returns Password strength evaluation metrics.
  */
 export function calculatePasswordStrength(password: string): PasswordStrength {
   if (!password) {
@@ -91,6 +94,12 @@ export function calculatePasswordStrength(password: string): PasswordStrength {
   };
 }
 
+/**
+ * Format crack time in human-readable duration.
+ *
+ * @param seconds Estimated seconds required to crack password.
+ * @returns Human-readable duration string.
+ */
 export function formatCrackTime(seconds: number): string {
   if (seconds <= 0.1) return "Instant";
   if (seconds < 60) return `${Math.round(seconds)} seconds`;
@@ -103,14 +112,4 @@ export function formatCrackTime(seconds: number): string {
   if (seconds < 86400 * 365 * 1000000)
     return `${Math.round(seconds / (86400 * 365 * 1000))}k years`;
   return "Centuries+";
-}
-
-/**
- * Character type classifier for UI syntax highlighting.
- */
-export function getCharType(char: string): CharType {
-  if (/[0-9]/.test(char)) return "digit";
-  if (/[A-Z]/.test(char)) return "upper";
-  if (/[a-z]/.test(char)) return "lower";
-  return "symbol";
 }

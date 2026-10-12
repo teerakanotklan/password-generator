@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { generateSecurePassword } from "@/lib/password/generator";
 
 export type CopiedState = number | "all" | null;
@@ -9,72 +9,71 @@ export interface GeneratePasswordsParams {
   options: string[];
 }
 
+/**
+ * Manage password generation state, batching, and clipboard operations.
+ *
+ * @returns State and controller functions for password generation.
+ */
 export function usePasswordGenerator() {
   const [passwords, setPasswords] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [copiedItemIndex, setCopiedItemIndex] = useState<CopiedState>(null);
   const lastCycleIndexRef = useRef<number>(-1);
+  const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-reset copied state indicator after 2 seconds
-  useEffect(() => {
-    if (copiedItemIndex === null) return;
-    const timer = setTimeout(() => {
+  const markCopied = (state: CopiedState) => {
+    setCopiedItemIndex(state);
+    if (copyResetTimerRef.current) {
+      clearTimeout(copyResetTimerRef.current);
+    }
+    copyResetTimerRef.current = setTimeout(() => {
       setCopiedItemIndex(null);
     }, 2000);
-    return () => clearTimeout(timer);
-  }, [copiedItemIndex]);
+  };
 
-  // Generate passwords based on user configuration
-  const generatePasswords = useCallback(
-    ({ length, quantity, options }: GeneratePasswordsParams) => {
-      setGenerationError(null);
+  const generatePasswords = (params: GeneratePasswordsParams) => {
+    setGenerationError(null);
 
-      // Convert options array into a lookup map
-      const optionMap = Object.fromEntries(
-        options.map((option) => [option, true]),
-      );
+    const optionMap = Object.fromEntries(
+      params.options.map((option) => [option, true]),
+    );
 
-      // Cap quantity to prevent blocking UI thread
-      const safeQuantity = Math.min(Math.max(1, quantity || 1), 500);
-      const generatedList: string[] = [];
+    const safeQuantity = Math.min(Math.max(1, params.quantity || 1), 500);
+    const generatedList: string[] = [];
 
-      for (let i = 0; i < safeQuantity; i++) {
-        const result = generateSecurePassword(optionMap, length);
-        if (!result.success) {
-          setGenerationError(result.error || "Failed to generate passwords");
-          if (generatedList.length === 0) {
-            setPasswords([]);
-            return;
-          }
-          break;
+    for (let i = 0; i < safeQuantity; i++) {
+      const result = generateSecurePassword(optionMap, params.length);
+      if (!result.success) {
+        setGenerationError(result.error ?? "Failed to generate passwords");
+        if (generatedList.length === 0) {
+          setPasswords([]);
+          return;
         }
-        generatedList.push(result.password!);
+        break;
       }
-
-      setPasswords(generatedList);
-      setCopiedItemIndex(null);
-      lastCycleIndexRef.current = -1;
-    },
-    [],
-  );
-
-  // Copy an individual password by index
-  const copySinglePassword = useCallback(
-    async (index: number) => {
-      if (!passwords[index]) return;
-      try {
-        await navigator.clipboard.writeText(passwords[index]);
-        setCopiedItemIndex(index);
-        lastCycleIndexRef.current = index;
-      } catch (err) {
-        console.error("Clipboard copy failed:", err);
+      if (result.password) {
+        generatedList.push(result.password);
       }
-    },
-    [passwords],
-  );
+    }
 
-  // Cycle through and copy the next password (wraps around to 0 when reaching the end)
-  const copyNextPassword = useCallback(async () => {
+    setPasswords(generatedList);
+    setCopiedItemIndex(null);
+    lastCycleIndexRef.current = -1;
+  };
+
+  const copySinglePassword = async (index: number) => {
+    const targetPassword = passwords[index];
+    if (!targetPassword) return;
+    try {
+      await navigator.clipboard.writeText(targetPassword);
+      markCopied(index);
+      lastCycleIndexRef.current = index;
+    } catch (err) {
+      console.error("Clipboard copy failed:", err);
+    }
+  };
+
+  const copyNextPassword = async () => {
     if (!passwords.length) return;
 
     const nextIndex = (lastCycleIndexRef.current + 1) % passwords.length;
@@ -82,26 +81,24 @@ export function usePasswordGenerator() {
 
     try {
       await navigator.clipboard.writeText(passwords[nextIndex]);
-      setCopiedItemIndex(nextIndex);
+      markCopied(nextIndex);
     } catch (err) {
       console.error("Clipboard copy failed:", err);
     }
-  }, [passwords]);
+  };
 
-  // Copy all passwords (newline separated)
-  const copyAllPasswords = useCallback(async () => {
+  const copyAllPasswords = async () => {
     if (!passwords.length) return;
 
     try {
       await navigator.clipboard.writeText(passwords.join("\n"));
-      setCopiedItemIndex("all");
+      markCopied("all");
     } catch (err) {
       console.error("Clipboard copy all failed:", err);
     }
-  }, [passwords]);
+  };
 
-  // Download passwords as a text file
-  const downloadAsTextFile = useCallback(() => {
+  const downloadAsTextFile = () => {
     if (!passwords.length) return;
     const blob = new Blob([passwords.join("\r\n")], {
       type: "text/plain;charset=utf-8",
@@ -114,7 +111,7 @@ export function usePasswordGenerator() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [passwords]);
+  };
 
   return {
     passwords,

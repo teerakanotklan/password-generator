@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SiteHeader } from "@/components/site-header";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const geistMono = Geist_Mono({
@@ -11,16 +13,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Password Generator",
+  title: "PassGen",
   description:
     "Generate strong, cryptographically secure passwords locally in your browser using the Web Crypto API. Calculate real-time entropy and crack time.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
+/**
+ * Render root HTML layout shell including header and theme provider.
+ *
+ * @param props Root layout properties.
+ * @returns Root HTML document.
+ */
+export default async function RootLayout(props: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const nonce = headersList.get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="en"
@@ -37,22 +46,10 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          nonce={nonce}
         >
-          {/* Top Navigation Bar */}
-          {/* <header className="w-full border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-50">
-            <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-              <div className="flex items-center gap-2.5 font-bold tracking-tight text-foreground text-sm sm:text-base">
-                <div className="p-1.5 rounded-lg bg-primary text-primary-foreground">
-                  <KeyRound className="h-4 w-4" />
-                </div>
-                <span>PassGen</span>
-              </div>
-              <ThemeToggle />
-            </div>
-          </header> */}
-
-          {/* Main content */}
-          <main className="flex-1 flex flex-col">{children}</main>
+          <SiteHeader />
+          <main className="flex-1 flex flex-col">{props.children}</main>
         </ThemeProvider>
       </body>
     </html>

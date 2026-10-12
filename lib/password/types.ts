@@ -16,5 +16,3 @@ export interface PasswordStrength {
   hasNumber: boolean;
   hasSymbol: boolean;
 }
-
-export type CharType = "digit" | "symbol" | "upper" | "lower";

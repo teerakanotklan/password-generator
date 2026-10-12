@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -14,20 +14,17 @@ import { CharacterTypesControl } from "@/components/character-types-control";
 import { RulesPreferencesControl } from "@/components/rules-preferences-control";
 import { PasswordDisplayList } from "@/components/password-display-list";
 
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Copy,
-  RotateCw,
-  Download,
-  Sparkles,
   AlertCircle,
-  Settings2,
-  ListFilter,
   SlidersHorizontal,
+  ListFilter,
+  Settings2,
+  Command,
 } from "lucide-react";
+
+const emptySubscribe = () => () => {};
 
 const formSchema = z.object({
   length: z
@@ -53,13 +50,22 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+/**
+ * Render password generation workbench with configuration controls and result list.
+ *
+ * @returns Password generator form interface.
+ */
 export function GeneratePasswordForm() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
   const [isRotating, setIsRotating] = useState(false);
-  const [mobileTab, setMobileTab] = useState<"passwords" | "settings">(
+  const [mobileTab, setMobileTab] = useState<"settings" | "passwords">(
     "passwords",
   );
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     passwords,
@@ -82,19 +88,14 @@ export function GeneratePasswordForm() {
         "lowercase",
         "number",
         "symbol",
-        "beginWithLetter",
-        "excludeDuplicate",
         "excludeSimilar",
         "save",
       ],
     },
   });
 
-  // Load saved settings if present in localStorage
-  useFormPersistence(form, formSchema);
-
   // Trigger password generation based on form values
-  const runGenerate = useCallback(() => {
+  const runGenerate = () => {
     const { length, quantity, options } = form.getValues();
     const generatorOptions = options.filter((opt) => opt !== "save");
 
@@ -103,47 +104,75 @@ export function GeneratePasswordForm() {
       quantity: Number(quantity) || 1,
       options: generatorOptions,
     });
-  }, [form, generatePasswords]);
+  };
 
-  // Debounced generator to keep slider dragging completely smooth at 60fps
-  const triggerDebouncedGenerate = useCallback(
-    (delay = 75) => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      debounceTimerRef.current = setTimeout(() => {
-        runGenerate();
-      }, delay);
-    },
-    [runGenerate],
-  );
+  // Load saved settings if present in localStorage
+  useFormPersistence({
+    form,
+    schema: formSchema,
+    onReady: runGenerate,
+  });
 
-  useEffect(() => {
-    setMounted(true);
-    runGenerate();
-  }, [runGenerate]);
+  // Debounced generator for smooth slider dragging
+  const triggerDebouncedGenerate = (delay = 60) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      runGenerate();
+    }, delay);
+  };
 
   const handleManualRegenerate = () => {
     setIsRotating(true);
     runGenerate();
-    setTimeout(() => setIsRotating(false), 400);
+    setTimeout(() => setIsRotating(false), 350);
   };
+
+  useEffect(() => {
+    if (mounted && passwords.length === 0) {
+      runGenerate();
+    }
+  }, [mounted, passwords.length]);
+
+  // Spacebar shortcut to regenerate when not focused on an interactive element
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        !(e.target instanceof HTMLElement) ||
+        e.target.closest(
+          "button, input, textarea, select, [role='checkbox'], [role='button'], a",
+        ) ||
+        e.target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        handleManualRegenerate();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const currentLength = form.watch("length");
   const currentQuantity = form.watch("quantity");
 
-  // Show matching skeleton while client initializes
   if (!mounted) {
     return <PasswordGeneratorSkeleton />;
   }
 
   return (
-    <div className="w-full">
-      {/* Mobile Segmented View Switcher (Top of the page on mobile screens) */}
+    <div className="w-full text-left">
+      {/* Mobile Tab Switcher */}
       <div className="block lg:hidden mb-4">
         <Tabs
           value={mobileTab}
-          onValueChange={(val) => setMobileTab(val as "passwords" | "settings")}
+          onValueChange={(val) =>
+            setMobileTab(val === "settings" ? "settings" : "passwords")
+          }
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2 h-10">
@@ -165,125 +194,14 @@ export function GeneratePasswordForm() {
         </Tabs>
       </div>
 
-      {/* Responsive 2-Column Grid on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+      {/* Main 2-Column Responsive Full-Width Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start w-full">
         {/* ========================================================================= */}
-        {/* LEFT COLUMN: Password Section (Open Layout, Matches Right Column)         */}
-        {/* ========================================================================= */}
-        <div
-          className={cn(
-            "lg:col-span-7 flex flex-col space-y-6",
-            mobileTab === "passwords" ? "flex" : "hidden lg:flex",
-          )}
-        >
-          {/* Header matching Right Column Header */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/50">
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div className="text-left">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-semibold tracking-tight">
-                    Generated Passwords
-                  </h2>
-                  <Badge variant="secondary" className="font-mono text-xs">
-                    {passwords.length}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Click any password to copy to clipboard
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {/* Regenerate Button */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleManualRegenerate}
-                title="Generate new password(s)"
-                className="cursor-pointer gap-1.5"
-              >
-                <RotateCw
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    isRotating && "animate-spin",
-                  )}
-                />
-                <span>Generate</span>
-              </Button>
-
-              {/* Action Buttons */}
-              {passwords.length > 1 && (
-                <>
-                  {/* Sequential Copy Next Password */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={copyNextPassword}
-                    className="cursor-pointer gap-1.5"
-                    title="Copy next password in order (cycles back to first)"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    <span>Copy One</span>
-                  </Button>
-
-                  {/* Copy All Button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={copyAllPasswords}
-                    className="cursor-pointer gap-1.5"
-                    title="Copy all passwords to clipboard"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    <span>Copy All</span>
-                  </Button>
-
-                  {/* Export / Download Button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadAsTextFile}
-                    className="cursor-pointer gap-1.5"
-                    title="Download passwords as a text file"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Export</span>
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Generation Error Alert if any */}
-          {generationError && (
-            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium shrink-0">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{generationError}</span>
-            </div>
-          )}
-
-          {/* Password List Section (Immediately at the top) */}
-          <PasswordDisplayList
-            passwords={passwords}
-            copiedItemIndex={copiedItemIndex}
-            onCopySingle={copySinglePassword}
-          />
-        </div>
-
-        {/* ========================================================================= */}
-        {/* RIGHT COLUMN: Settings Section (Open Layout, No Card, No Scroll)          */}
+        {/* LEFT COLUMN: Settings & Configuration (Sticky on desktop)                 */}
         {/* ========================================================================= */}
         <div
           className={cn(
-            "lg:col-span-5 flex flex-col space-y-6",
+            "lg:col-span-5 xl:col-span-4 flex flex-col space-y-5 rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs lg:sticky lg:top-20",
             mobileTab === "settings" ? "flex" : "hidden lg:flex",
           )}
         >
@@ -293,50 +211,49 @@ export function GeneratePasswordForm() {
               <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                 <Settings2 className="h-4 w-4" />
               </div>
-              <div className="text-left">
-                <h2 className="text-base font-semibold tracking-tight">
-                  Settings & Rules
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                  Configuration
                 </h2>
-                <p className="text-xs text-muted-foreground">
-                  Customize length, quantity, and character rules
+                <p className="text-[11px] text-muted-foreground">
+                  Entropy parameters & rules
                 </p>
               </div>
             </div>
-            <Badge variant="outline" className="font-mono text-xs">
-              Config
-            </Badge>
+
+            <div className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground font-mono bg-muted/40 px-2 py-0.5 rounded border border-border/40">
+              <Command className="h-3 w-3" />
+              <span>Space = Re-roll</span>
+            </div>
           </div>
 
-          {/* Form Controls - Natural flow, no scroll container */}
-          <form
-            onSubmit={form.handleSubmit(runGenerate)}
-            className="space-y-5"
-          >
-            {/* Parameters Section (Length Slider & Presets) */}
+          {/* Form Controls */}
+          <form onSubmit={form.handleSubmit(runGenerate)} className="space-y-5">
+            {/* Length Control */}
             <PasswordLengthControl
               value={currentLength}
               onChange={(val) => {
                 form.setValue("length", val, { shouldValidate: true });
-                triggerDebouncedGenerate(60);
+                triggerDebouncedGenerate(40);
               }}
               onCommit={runGenerate}
             />
 
-            <Separator />
+            <Separator className="bg-border/60" />
 
-            {/* Parameters Section (Quantity Slider) */}
+            {/* Quantity Control */}
             <PasswordQuantityControl
               value={currentQuantity}
               onChange={(val) => {
                 form.setValue("quantity", val, { shouldValidate: true });
-                triggerDebouncedGenerate(60);
+                triggerDebouncedGenerate(40);
               }}
               onCommit={runGenerate}
             />
 
-            <Separator />
+            <Separator className="bg-border/60" />
 
-            {/* Character Types Configuration */}
+            {/* Character Types */}
             <Controller
               name="options"
               control={form.control}
@@ -352,9 +269,9 @@ export function GeneratePasswordForm() {
               )}
             />
 
-            <Separator />
+            <Separator className="bg-border/60" />
 
-            {/* Advanced Rules & Preferences */}
+            {/* Rules & Preferences */}
             <Controller
               name="options"
               control={form.control}
@@ -381,6 +298,36 @@ export function GeneratePasswordForm() {
               )}
             />
           </form>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* RIGHT COLUMN: Password Display List (Generous Full-Width Space)          */}
+        {/* ========================================================================= */}
+        <div
+          className={cn(
+            "lg:col-span-7 xl:col-span-8 flex flex-col space-y-4 rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs",
+            mobileTab === "passwords" ? "flex" : "hidden lg:flex",
+          )}
+        >
+          {/* Generation Error Alert if any */}
+          {generationError && (
+            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{generationError}</span>
+            </div>
+          )}
+
+          {/* Password List Section */}
+          <PasswordDisplayList
+            passwords={passwords}
+            copiedItemIndex={copiedItemIndex}
+            onCopySingle={copySinglePassword}
+            onRegenerate={handleManualRegenerate}
+            isRotating={isRotating}
+            onCopyNext={copyNextPassword}
+            onCopyAll={copyAllPasswords}
+            onDownload={downloadAsTextFile}
+          />
         </div>
       </div>
     </div>

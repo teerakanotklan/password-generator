@@ -1,9 +1,12 @@
 import { CHAR_SETS, SIMILAR_CHAR_SET } from "./constants";
 import type { GeneratePasswordResult } from "./types";
 
+
 /**
- * Returns a cryptographically secure random integer in [0, max - 1]
- * using Web Crypto API and rejection sampling to eliminate modulo bias.
+ * Return a cryptographically secure random integer in [0, max - 1].
+ *
+ * @param max Upper exclusive bound.
+ * @returns Cryptographically secure random integer.
  */
 export function getSecureRandomInt(max: number): number {
   if (max <= 1) return 0;
@@ -19,7 +22,11 @@ export function getSecureRandomInt(max: number): number {
 }
 
 /**
- * Generates a cryptographically secure password based on the provided configuration options.
+ * Generate a cryptographically secure password based on configuration options.
+ *
+ * @param optionMap Map of enabled feature and character options.
+ * @param length Desired password length.
+ * @returns Result object containing status and generated password or error message.
  */
 export function generateSecurePassword(
   optionMap: Record<string, boolean>,
@@ -49,7 +56,11 @@ export function generateSecurePassword(
 
   // Step 1: Ensure at least one character from each enabled pool
   for (const pool of charPools) {
-    const char = getSecureRandomChar(pool, optionMap.excludeDuplicate, usedChars);
+    const char = getSecureRandomChar({
+      chars: pool,
+      avoidDuplicate: optionMap.excludeDuplicate,
+      usedChars,
+    });
     if (!char) {
       return { success: false, error: "Failed to allocate unique character" };
     }
@@ -59,11 +70,11 @@ export function generateSecurePassword(
 
   // Step 2: Fill remaining characters
   while (password.length < length) {
-    const char = getSecureRandomChar(
-      combinedPool,
-      optionMap.excludeDuplicate,
+    const char = getSecureRandomChar({
+      chars: combinedPool,
+      avoidDuplicate: optionMap.excludeDuplicate,
       usedChars,
-    );
+    });
     if (!char) {
       return { success: false, error: "Failed to allocate unique character" };
     }
@@ -76,7 +87,11 @@ export function generateSecurePassword(
 
   // Step 4: Ensure starts with letter if requested
   if (optionMap.beginWithLetter) {
-    enforceLeadingLetter(password, optionMap, usedChars);
+    enforceLeadingLetter({
+      password,
+      optionMap,
+      usedChars,
+    });
   }
 
   return {
@@ -85,19 +100,33 @@ export function generateSecurePassword(
   };
 }
 
+/**
+ * Generate a cryptographically secure password and return string value.
+ *
+ * @param optionMap Map of enabled feature and character options.
+ * @param length Desired password length.
+ * @returns Generated password string.
+ * @throws Error when generation fails.
+ */
 export function generatePassword(
   optionMap: Record<string, boolean>,
   length: number,
 ): string {
   const result = generateSecurePassword(optionMap, length);
-  if (!result.success) {
-    throw new Error(result.error || "Generation failed");
+  if (!result.success || !result.password) {
+    throw new Error(result.error ?? "Generation failed");
   }
-  return result.password!;
+  return result.password;
 }
 
 // -------------------- Helpers --------------------
 
+/**
+ * Get enabled character pool strings matching selected options.
+ *
+ * @param options Map of options.
+ * @returns Array of character pools.
+ */
 function getEnabledCharPools(options: Record<string, boolean>): string[] {
   return Object.entries(CHAR_SETS)
     .filter(([key]) => options[key])
@@ -105,25 +134,43 @@ function getEnabledCharPools(options: Record<string, boolean>): string[] {
     .filter((pool) => pool.length > 0);
 }
 
+/**
+ * Filter out ambiguous characters from character string if requested.
+ *
+ * @param chars Character pool string.
+ * @param excludeSimilar Whether to exclude ambiguous glyphs.
+ * @returns Filtered character string.
+ */
 function maybeExcludeSimilar(chars: string, excludeSimilar?: boolean): string {
   if (!excludeSimilar) return chars;
   return [...chars].filter((ch) => !SIMILAR_CHAR_SET.has(ch)).join("");
 }
 
-function getSecureRandomChar(
-  chars: string,
-  avoidDuplicate: boolean | undefined,
-  usedChars: Set<string>,
-): string | null {
-  const pool = avoidDuplicate
-    ? [...chars].filter((ch) => !usedChars.has(ch))
-    : [...chars];
+/**
+ * Select a cryptographically secure random character from pool.
+ *
+ * @param options Selection options containing characters, duplicate policy, and used set.
+ * @returns Selected character or null if pool exhausted.
+ */
+function getSecureRandomChar(options: {
+  chars: string;
+  avoidDuplicate?: boolean;
+  usedChars: Set<string>;
+}): string | null {
+  const pool = options.avoidDuplicate
+    ? [...options.chars].filter((ch) => !options.usedChars.has(ch))
+    : [...options.chars];
 
   if (!pool.length) return null;
   const index = getSecureRandomInt(pool.length);
   return pool[index];
 }
 
+/**
+ * Shuffle array in-place using Fisher–Yates with cryptographically secure random integers.
+ *
+ * @param array Array of strings to shuffle.
+ */
 function secureShuffle(array: string[]) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = getSecureRandomInt(i + 1);
@@ -131,42 +178,51 @@ function secureShuffle(array: string[]) {
   }
 }
 
-function enforceLeadingLetter(
-  password: string[],
-  options: Record<string, boolean>,
-  usedChars: Set<string>,
-) {
+/**
+ * Ensure password starts with a letter character.
+ *
+ * @param options Leading letter options containing password, option map, and used characters.
+ */
+function enforceLeadingLetter(options: {
+  password: string[];
+  optionMap: Record<string, boolean>;
+  usedChars: Set<string>;
+}) {
   const letterPool = [
-    ...(options.uppercase
-      ? maybeExcludeSimilar(CHAR_SETS.uppercase, options.excludeSimilar)
+    ...(options.optionMap.uppercase
+      ? maybeExcludeSimilar(CHAR_SETS.uppercase, options.optionMap.excludeSimilar)
       : ""),
-    ...(options.lowercase
-      ? maybeExcludeSimilar(CHAR_SETS.lowercase, options.excludeSimilar)
+    ...(options.optionMap.lowercase
+      ? maybeExcludeSimilar(CHAR_SETS.lowercase, options.optionMap.excludeSimilar)
       : ""),
   ];
 
   if (!letterPool.length) return;
 
   const letterSet = new Set(letterPool);
-  const firstLetterIndex = password.findIndex((ch) => letterSet.has(ch));
+  const firstLetterIndex = options.password.findIndex((ch) => letterSet.has(ch));
 
   if (firstLetterIndex === -1) {
-    const newLetter = getSecureRandomChar(letterPool.join(""), false, usedChars);
+    const newLetter = getSecureRandomChar({
+      chars: letterPool.join(""),
+      avoidDuplicate: false,
+      usedChars: options.usedChars,
+    });
     if (!newLetter) return;
 
-    if (options.excludeDuplicate) {
-      usedChars.delete(password[0]);
+    if (options.optionMap.excludeDuplicate) {
+      options.usedChars.delete(options.password[0]);
     }
 
-    password[0] = newLetter;
-    usedChars.add(newLetter);
+    options.password[0] = newLetter;
+    options.usedChars.add(newLetter);
     return;
   }
 
   if (firstLetterIndex !== 0) {
-    [password[0], password[firstLetterIndex]] = [
-      password[firstLetterIndex],
-      password[0],
+    [options.password[0], options.password[firstLetterIndex]] = [
+      options.password[firstLetterIndex],
+      options.password[0],
     ];
   }
 }

@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 
 const emptySubscribe = () => () => {};
 
+/**
+ * Render theme toggle button that cycles between light, dark, and system themes.
+ *
+ * @returns Theme toggle element.
+ */
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const mounted = React.useSyncExternalStore(
