@@ -7,7 +7,7 @@ import { GeneratePasswordForm } from "@/components/generate-password-form";
  */
 export default function HomePage() {
   return (
-    <div className="flex-1 flex flex-col w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
+    <div className="flex-1 flex flex-col w-full p-4 sm:p-6">
       <div className="w-full">
         <GeneratePasswordForm />
       </div>

@@ -11,37 +11,42 @@ export interface CharPoolItem {
   title: string;
   range: string;
   sample: string;
+  description: string;
 }
 
 export const CHAR_POOL_ITEMS: CharPoolItem[] = [
   {
     id: "uppercase",
-    title: "Uppercase",
-    range: "A-Z",
+    title: "Uppercase letters",
+    range: "A–Z",
     sample: "ABC",
+    description: "Capital Latin glyphs",
   },
   {
     id: "lowercase",
-    title: "Lowercase",
-    range: "a-z",
+    title: "Lowercase letters",
+    range: "a–z",
     sample: "abc",
+    description: "Small Latin glyphs",
   },
   {
     id: "number",
-    title: "Numbers",
-    range: "0-9",
-    sample: "123",
+    title: "Numeric digits",
+    range: "0–9",
+    sample: "012",
+    description: "Decimal numbers",
   },
   {
     id: "symbol",
-    title: "Symbols",
+    title: "Special symbols",
     range: "!@#$...",
-    sample: "#$!&",
+    sample: "%&#*",
+    description: "High-entropy punctuation",
   },
 ];
 
 /**
- * Render checkboxes to toggle character types.
+ * Render interactive cards to toggle character sets with immediate visual tactile feedback.
  *
  * @param props Control properties.
  * @returns Character types control component.
@@ -60,62 +65,53 @@ export function CharacterTypesControl(props: {
   };
 
   return (
-    <div className="space-y-2.5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Character Sets
-        </h3>
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-semibold text-foreground tracking-tight">
+          Character sets
+        </span>
         {props.error && (
-          <span className="text-xs text-destructive font-medium flex items-center gap-1">
-            <ShieldAlert className="h-3.5 w-3.5" />
+          <span className="text-[11px] text-destructive font-medium flex items-center gap-1">
+            <ShieldAlert className="h-3 w-3 shrink-0" />
             <span>{props.error}</span>
           </span>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         {CHAR_POOL_ITEMS.map((item) => {
           const isChecked = props.selectedOptions.includes(item.id);
 
           return (
-            <label
+            <div
               key={item.id}
-              htmlFor={`char-${item.id}`}
+              onClick={() => handleToggle(item.id)}
+              title={item.description}
               className={cn(
-                "group relative flex flex-col items-start p-3 rounded-xl border text-left transition-all cursor-pointer select-none",
+                "flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer select-none transition-colors",
                 isChecked
-                  ? "bg-primary/5 border-primary/40 shadow-xs"
-                  : "bg-muted/20 border-border/60 hover:bg-muted/40 hover:border-border opacity-70",
+                  ? "bg-card border-foreground/25"
+                  : "bg-muted/30 border-border/60 hover:border-border opacity-70",
               )}
             >
-              <div className="flex items-center justify-between w-full">
-                <Label
-                  htmlFor={`char-${item.id}`}
-                  className="text-xs font-semibold text-foreground cursor-pointer"
-                >
-                  {item.title}
-                </Label>
-                <Checkbox
-                  id={`char-${item.id}`}
-                  checked={isChecked}
-                  onCheckedChange={() => handleToggle(item.id)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between w-full mt-1.5 font-mono text-[11px]">
-                <span className="text-muted-foreground">{item.range}</span>
-                <span
-                  className={cn(
-                    "px-1.5 py-0.5 rounded font-medium",
-                    isChecked
-                      ? "bg-background text-foreground border border-border/40"
-                      : "text-muted-foreground/50",
-                  )}
-                >
-                  {item.sample}
-                </span>
-              </div>
-            </label>
+              <Checkbox
+                id={`char-${item.id}`}
+                checked={isChecked}
+                onCheckedChange={() => handleToggle(item.id)}
+                onClick={(e) => e.stopPropagation()}
+                className="size-3.5 shrink-0"
+              />
+              <Label
+                htmlFor={`char-${item.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="min-w-0 flex-1 cursor-pointer truncate text-xs font-medium text-foreground"
+              >
+                {item.title}
+              </Label>
+              <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                {item.sample}
+              </span>
+            </div>
           );
         })}
       </div>

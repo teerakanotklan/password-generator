@@ -50,3 +50,7 @@ Tailwind v4 utility classes. Reuse shared components. Responsive. No unnecessary
 - Start each block with `/**` directly above the symbol.
 - Short, sentence-case, present-tense description of intent.
 - Order: description → `@param` → `@returns` → `@throws` (only if it can throw).
+
+## Layout Web UI
+
+- Do not create a top header
