@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { generateSecurePassword } from "@/lib/password/generator";
+import { generateSecurePassword } from "@/lib/password-generator";
 
 export type CopiedState = number | "all" | null;
 

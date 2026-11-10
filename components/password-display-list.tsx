@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CopiedState } from "@/hooks/use-password-generator";
-import { calculatePasswordStrength } from "@/lib/password/strength";
+import { calculatePasswordStrength } from "@/lib/password-strength";
 import {
   Copy,
   Check,
@@ -43,7 +43,8 @@ export function PasswordDisplayList(props: {
           No passwords generated yet
         </p>
         <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-          Select your desired parameters and click Generate to produce secure keys.
+          Select your desired parameters and click Generate to produce secure
+          keys.
         </p>
         <Button
           type="button"
@@ -71,7 +72,10 @@ export function PasswordDisplayList(props: {
               <h2 className="text-sm sm:text-base font-semibold tracking-tight text-foreground">
                 Generated Passwords
               </h2>
-              <Badge variant="secondary" className="font-mono text-xs px-2 py-0 h-5">
+              <Badge
+                variant="secondary"
+                className="font-mono text-xs px-2 py-0 h-5"
+              >
                 {props.passwords.length}
               </Badge>
             </div>
@@ -168,7 +172,9 @@ export function PasswordDisplayList(props: {
               {strength.label}
             </span>
             <span>•</span>
-            <span className="font-mono">{strength.entropyBits} bits entropy</span>
+            <span className="font-mono">
+              {strength.entropyBits} bits entropy
+            </span>
           </div>
           <div className="flex items-center gap-1.5 font-mono text-[11px]">
             <Clock className="h-3 w-3 shrink-0" />

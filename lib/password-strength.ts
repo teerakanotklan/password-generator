@@ -1,4 +1,4 @@
-import type { PasswordStrength } from "./types";
+import type { PasswordStrength } from "@/types";
 
 /**
  * Calculate password strength score, entropy, and crack time.

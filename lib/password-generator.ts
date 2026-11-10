@@ -1,5 +1,5 @@
-import { CHAR_SETS, SIMILAR_CHAR_SET } from "./constants";
-import type { GeneratePasswordResult } from "./types";
+import { CHAR_SETS, SIMILAR_CHAR_SET } from "@/constants";
+import type { GeneratePasswordResult } from "@/types";
 
 
 /**
