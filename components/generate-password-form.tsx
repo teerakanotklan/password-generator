@@ -77,6 +77,8 @@ export function GeneratePasswordForm() {
         "number",
         "symbol",
         "excludeSimilar",
+        "beginWithLetter",
+        "excludeDuplicate",
         "save",
       ],
     },
